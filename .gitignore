@@ -1,0 +1,30 @@
+# Dossiers / fichiers générés par Node.js
+node_modules/
+dist/
+build/
+coverage/
+
+# Fichiers de configuration
+.env
+
+# Fichiers de log
+*.log
+
+# Fichiers de sauvegarde
+*.bak
+
+# Fichiers de débogage
+.vscode/
+npm-debug.log*
+
+# Fichiers de build TypeScript
+*.js
+*.js.map
+*.d.ts
+
+# Fichiers de dépendances de développement
+devDependencies/
+
+# Fichiers spécifiques à certains éditeurs / IDE
+.idea/
+.vs/

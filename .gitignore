@@ -28,3 +28,5 @@ devDependencies/
 # Fichiers spécifiques à certains éditeurs / IDE
 .idea/
 .vs/
+
+public/images/

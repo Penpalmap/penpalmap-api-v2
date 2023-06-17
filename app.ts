@@ -11,6 +11,8 @@ const app: Application = express();
 // Middleware pour le traitement des données JSON
 app.use(express.json());
 
+app.use(express.static("public"));
+
 // Synchronisez les modèles avec la base de données
 sequelize
   .sync()

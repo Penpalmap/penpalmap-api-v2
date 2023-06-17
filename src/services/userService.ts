@@ -16,7 +16,6 @@ export const userService = {
   async createUser(user: User) {
     // Create user with google connection
     if (user.googleId) {
-      console.log("googleId");
       const userExists = await User.findOne({
         where: {
           googleId: user.googleId,
@@ -85,6 +84,7 @@ export const userService = {
       where: {
         email: email,
       },
+      include: ["userImages"],
     });
   },
 

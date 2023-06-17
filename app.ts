@@ -3,8 +3,11 @@
 import express, { Application, Request, Response, NextFunction } from "express";
 import userRoutes from "./src/routes/userRoutes";
 import authRoutes from "./src/routes/authRoutes";
+import messageRoutes from "./src/routes/messageRoutes";
 import mapRoutes from "./src/routes/mapRoutes";
+import roomRoutes from "./src/routes/roomRoutes";
 import sequelize from "./sequelize/sequelize";
+import createSocketServer from "./socket";
 
 const app: Application = express();
 
@@ -35,6 +38,8 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/map", mapRoutes);
+app.use("/api/messages", messageRoutes);
+app.use("/api/rooms", roomRoutes);
 
 // Gestion des erreurs 404 (route non trouvée)
 app.use((req: Request, res: Response, next: NextFunction) => {

@@ -27,6 +27,7 @@ export const UserController = {
   async getUserByEmail(req: Request, res: Response): Promise<void> {
     try {
       const user = await userService.getUserByEmail(req.params.email);
+      console.log(user);
       res.json(user);
     } catch (error) {
       res.status(500).json({ error: error });

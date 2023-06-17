@@ -1,4 +1,7 @@
 import { Message } from "../../sequelize/models/Message";
+import { Room } from "../../sequelize/models/Room";
+import { UserRoom } from "../../sequelize/models/UserRoom";
+import { MessageInput } from "../../types/types";
 
 export const messageService = {
   // Get all messages
@@ -10,8 +13,35 @@ export const messageService = {
     return await Message.findByPk(id);
   },
   // Create message
-  async createMessage(message: Message): Promise<Message> {
-    return await Message.create(message);
+  async createMessage(message: MessageInput): Promise<Message> {
+    let room: Room | null;
+
+    if (!message.roomId) {
+      // Si le roomId n'est pas fourni, créer une nouvelle room
+      room = await Room.create();
+      // Ajouter les membres à la nouvelle room
+      console.log(message.senderId, message.receiverId);
+      await UserRoom.bulkCreate([
+        { userId: message.senderId, roomId: room.id } as UserRoom,
+        { userId: message.receiverId, roomId: room.id } as UserRoom,
+      ]);
+    } else {
+      // Si le roomId est fourni, vérifier si la room existe
+      room = await Room.findByPk(message.roomId);
+      if (!room) {
+        throw new Error("La room spécifiée n'existe pas");
+      }
+    }
+
+    // Créer le message dans la room
+    const createdMessage = await Message.create({
+      content: message.content,
+      room: room,
+      roomId: room.id,
+      senderId: message.senderId,
+    } as Message);
+
+    return createdMessage;
   },
   // Update message
   async updateMessage(id: string, message: Message): Promise<void> {

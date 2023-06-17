@@ -22,6 +22,19 @@ export const RoomController = {
     }
   },
 
+  async getRoomByUsers(req: Request, res: Response): Promise<void> {
+    try {
+      console.log("oar la");
+      const room = await roomService.getRoomByUsers(
+        req.params.userId1,
+        req.params.userId2
+      );
+      res.json(room);
+    } catch (error) {
+      res.status(500).json({ error: error });
+    }
+  },
+
   // Create room
   async createRoom(req: Request, res: Response): Promise<void> {
     try {

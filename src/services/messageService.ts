@@ -13,7 +13,7 @@ export const messageService = {
     return await Message.findByPk(id);
   },
   // Create message
-  async createMessage(message: MessageInput): Promise<Message> {
+  async createMessage(message: MessageInput): Promise<Message | null> {
     let room: Room | null;
 
     if (!message.roomId) {
@@ -41,7 +41,10 @@ export const messageService = {
       senderId: message.senderId,
     } as Message);
 
-    return createdMessage;
+    // return created message with room
+    return await Message.findByPk(createdMessage.id, {
+      include: [{ model: Room, as: "room" }],
+    });
   },
   // Update message
   async updateMessage(id: string, message: Message): Promise<void> {

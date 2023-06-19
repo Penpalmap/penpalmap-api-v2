@@ -16,12 +16,12 @@ export class UserRoom extends Model<UserRoom> {
     type: DataType.UUID,
     allowNull: false,
   })
-  userId!: string;
+  declare userId: string;
 
   @ForeignKey(() => Room)
   @Column({
     type: DataType.UUID,
     allowNull: false,
   })
-  roomId!: string;
+  declare roomId: string;
 }

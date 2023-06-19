@@ -1,7 +1,9 @@
 import { Message } from "../../sequelize/models/Message";
 import { Room } from "../../sequelize/models/Room";
 import { User } from "../../sequelize/models/User";
-import { Op } from "sequelize";
+import { Op, Sequelize } from "sequelize";
+import { UserRoom } from "../../sequelize/models/UserRoom";
+import sequelize from "../../sequelize/sequelize";
 
 export const roomService = {
   // Get all rooms
@@ -26,22 +28,38 @@ export const roomService = {
 
   // Get room by users
   async getRoomByUsers(userId1: string, userId2: string): Promise<Room | null> {
-    const rooms = await Room.findOne({
-      include: [
-        {
-          model: User,
-          where: {
-            id: {
-              [Op.in]: [userId1, userId2],
-            },
+    // get rooms where user1 and user2 are members
+    try {
+      const room = await UserRoom.findOne({
+        where: {
+          userId: {
+            [Op.in]: [userId1, userId2],
           },
         },
-        {
-          model: Message,
-        },
-      ],
-    });
+        attributes: ["roomId"],
+        group: ["roomId"],
+        having: Sequelize.literal(`COUNT(*) = 2`),
+      });
 
-    return rooms;
+      if (room) {
+        return await Room.findByPk(room.roomId, {
+          include: [
+            {
+              model: User,
+              as: "members",
+            },
+            {
+              model: Message,
+              as: "messages",
+            },
+          ],
+        });
+      }
+
+      return room;
+    } catch (error) {
+      console.log(error);
+      return null;
+    }
   },
 };

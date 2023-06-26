@@ -15,7 +15,6 @@ export const authService = {
       throw new Error("Incorrect credentials");
     } else {
       const isPasswordValid = await bcrypt.compare(password, user.password);
-      console.log(isPasswordValid);
       if (!isPasswordValid) {
         throw new Error("Incorrect credentials");
       }

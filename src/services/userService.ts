@@ -1,3 +1,4 @@
+import { Room } from "../../sequelize/models/Room";
 import { User } from "../../sequelize/models/User";
 import bcrypt from "bcrypt";
 
@@ -45,7 +46,6 @@ export const userService = {
       });
 
       if (userExists) {
-        console.log("userExists");
         throw new Error("User already exists");
       }
 
@@ -75,7 +75,18 @@ export const userService = {
 
   async getUserRooms(id: string): Promise<User | null> {
     return await User.findByPk(id, {
-      include: ["rooms"],
+      include: [
+        {
+          model: Room,
+          as: "rooms",
+          include: [
+            {
+              model: User,
+              as: "members",
+            },
+          ],
+        },
+      ],
     });
   },
 
@@ -98,7 +109,7 @@ export const userService = {
 
   async getUsersInMap(): Promise<User[]> {
     return await User.findAll({
-      attributes: ["id", "name", "latitude", "longitude", "image"],
+      attributes: ["id", "name", "latitude", "longitude", "image", "points"],
     });
   },
 };

@@ -20,7 +20,6 @@ export const messageService = {
       // Si le roomId n'est pas fourni, créer une nouvelle room
       room = await Room.create();
       // Ajouter les membres à la nouvelle room
-      console.log(message.senderId, message.receiverId);
       await UserRoom.bulkCreate([
         { userId: message.senderId, roomId: room.id } as UserRoom,
         { userId: message.receiverId, roomId: room.id } as UserRoom,

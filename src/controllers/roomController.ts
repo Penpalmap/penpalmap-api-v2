@@ -53,4 +53,16 @@ export const RoomController = {
       res.status(500).json({ error: error });
     }
   },
+
+  async updateMessageIsRead(req: Request, res: Response): Promise<void> {
+    try {
+      await roomService.setMessagesIsReadByRoomId(
+        req.params.id,
+        req.params.userId
+      );
+      res.json({ message: "Room updated successfully" });
+    } catch (error) {
+      res.status(500).json({ error: error });
+    }
+  },
 };

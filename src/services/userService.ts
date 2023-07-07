@@ -1,6 +1,7 @@
 import { Room } from "../../sequelize/models/Room";
 import { User } from "../../sequelize/models/User";
 import bcrypt from "bcrypt";
+import sequelize from "../../sequelize/sequelize";
 
 export const userService = {
   // Get all users
@@ -85,6 +86,16 @@ export const userService = {
               as: "members",
             },
           ],
+          attributes: {
+            include: [
+              [
+                sequelize.literal(
+                  `(SELECT COUNT(*) FROM "Messages" WHERE "Messages"."roomId" = "rooms"."id" AND "Messages"."isSeen" = false AND "Messages"."senderId" != '${id}')`
+                ),
+                "countUnreadMessages",
+              ],
+            ],
+          },
         },
       ],
     });

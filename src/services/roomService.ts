@@ -3,7 +3,6 @@ import { Room } from "../../sequelize/models/Room";
 import { User } from "../../sequelize/models/User";
 import { Op, Sequelize } from "sequelize";
 import { UserRoom } from "../../sequelize/models/UserRoom";
-import sequelize from "../../sequelize/sequelize";
 
 export const roomService = {
   // Get all rooms
@@ -61,5 +60,23 @@ export const roomService = {
       console.log(error);
       return null;
     }
+  },
+
+  async setMessagesIsReadByRoomId(
+    roomId: string,
+    userId: string
+  ): Promise<void> {
+    // update all messages in room where senderId is not userId
+    await Message.update(
+      { isSeen: true },
+      {
+        where: {
+          roomId: roomId,
+          senderId: {
+            [Op.eq]: userId,
+          },
+        },
+      }
+    );
   },
 };

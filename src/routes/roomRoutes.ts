@@ -18,4 +18,9 @@ router.post("/", RoomController.createRoom);
 // PUT /api/rooms/:id
 router.put("/:id", RoomController.updateRoom);
 
+router.put(
+  "/:id/messages/users/:userId/read",
+  RoomController.updateMessageIsRead
+);
+
 export default router;

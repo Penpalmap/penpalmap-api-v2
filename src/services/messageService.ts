@@ -41,9 +41,18 @@ export const messageService = {
     } as Message);
 
     // return created message with room
-    return await Message.findByPk(createdMessage.id, {
+    const createdMessageWithRoom = await Message.findByPk(createdMessage.id, {
       include: [{ model: Room, as: "room" }],
     });
+
+    if (createdMessageWithRoom) {
+      const messageCreated = {
+        ...createdMessageWithRoom.toJSON(),
+        isNewRoom: !message.roomId,
+      };
+    }
+
+    return createdMessageWithRoom;
   },
   // Update message
   async updateMessage(id: string, message: Message): Promise<void> {

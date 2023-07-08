@@ -14,6 +14,8 @@ const createSocketServer = (server: Server) => {
   const STOP_TYPING_MESSAGE_EVENT = "STOP_TYPING_MESSAGE_EVENT";
   const TYPING_MESSAGE_EVENT = "TYPING_MESSAGE_EVENT";
   const NEW_CHAT_MESSAGE_EVENT = "NEW_MESSAGE";
+  const SEND_MESSAGE_EVENT = "SEND_MESSAGE";
+  const JOIN_ROOM_EVENT = "JOIN_ROOM";
 
   io.on("connection", (socket: Socket) => {
     socket.on("JOIN_ROOM", (roomId: string) => {
@@ -21,12 +23,17 @@ const createSocketServer = (server: Server) => {
     });
 
     socket.on("LEAVE_ROOM", (roomId: string) => {
+      console.log("LEAVE_ROOM_EVENT", roomId);
       socket.leave(roomId);
     });
 
-    socket.on(NEW_CHAT_MESSAGE_EVENT, (message: Message) => {
+    socket.on(SEND_MESSAGE_EVENT, (message) => {
       io.in(message.roomId).emit(NEW_CHAT_MESSAGE_EVENT, message);
     });
+
+    // socket.on(NEW_CHAT_MESSAGE_EVENT, (message: Message) => {
+    //   io.in(message.roomId).emit(NEW_CHAT_MESSAGE_EVENT, message);
+    // });
 
     socket.on(STOP_TYPING_MESSAGE_EVENT, (data: any) => {
       io.in(data.roomId).emit(STOP_TYPING_MESSAGE_EVENT, data);

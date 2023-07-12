@@ -31,4 +31,6 @@ router.post(
   UserController.uploadUserImage
 );
 
+router.get("/:id/profile", UserController.getUserProfile);
+
 export default router;

@@ -123,4 +123,10 @@ export const userService = {
       attributes: ["id", "name", "latitude", "longitude", "image", "points"],
     });
   },
+
+  async getUserProfile(id: string): Promise<User | null> {
+    return await User.findByPk(id, {
+      include: ["userImages"],
+    });
+  },
 };

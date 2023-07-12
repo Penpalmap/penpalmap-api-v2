@@ -54,7 +54,7 @@ export const UserController = {
       const user = await userService.createUser(req.body);
       res.json(user);
     } catch (error) {
-      res.status(500).json({ error: error });
+      res.status(500).json({ error });
     }
   },
 
@@ -89,6 +89,15 @@ export const UserController = {
         position,
         file,
       });
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ error: error });
+    }
+  },
+
+  async getUserProfile(req: Request, res: Response): Promise<void> {
+    try {
+      const user = await userService.getUserProfile(req.params.id);
       res.json(user);
     } catch (error) {
       res.status(500).json({ error: error });

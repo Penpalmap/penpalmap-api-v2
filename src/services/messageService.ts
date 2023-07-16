@@ -13,7 +13,7 @@ export const messageService = {
     return await Message.findByPk(id);
   },
   // Create message
-  async createMessage(message: MessageInput): Promise<Message | null> {
+  async createMessage(message: MessageInput): Promise<any | null> {
     let room: Room | null;
 
     if (!message.roomId) {
@@ -46,13 +46,13 @@ export const messageService = {
     });
 
     if (createdMessageWithRoom) {
-      const messageCreated = {
+      let messageCreated = {
         ...createdMessageWithRoom.toJSON(),
         isNewRoom: !message.roomId,
       };
-    }
 
-    return createdMessageWithRoom;
+      return messageCreated;
+    }
   },
   // Update message
   async updateMessage(id: string, message: Message): Promise<void> {

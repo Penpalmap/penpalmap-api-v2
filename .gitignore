@@ -20,7 +20,6 @@ npm-debug.log*
 # Fichiers de build TypeScript
 *.js
 *.js.map
-*.d.ts
 
 # Fichiers de dépendances de développement
 devDependencies/

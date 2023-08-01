@@ -129,4 +129,32 @@ export const userService = {
       include: ["userImages"],
     });
   },
+
+  async deleteUserProfileImage(id: string, position: number): Promise<void> {
+    const user = await User.findByPk(id, {
+      include: ["userImages"],
+    });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const userImages = user.dataValues.userImages;
+
+    if (!userImages) {
+      throw new Error("User images not found");
+    }
+    console.log("userImages", userImages);
+    if (userImages.length === 1) {
+      throw new Error("User must have at least one image");
+    }
+
+    const imageToDelete = userImages[position];
+
+    if (!imageToDelete) {
+      throw new Error("Image not found");
+    }
+
+    await imageToDelete.destroy();
+  },
 };

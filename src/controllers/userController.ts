@@ -103,4 +103,18 @@ export const UserController = {
       res.status(500).json({ error: error });
     }
   },
+
+  async deleteUserProfileImage(req: Request, res: Response): Promise<void> {
+    try {
+      console.log("PASSE");
+      const { id, position } = req.params;
+      const user = await userService.deleteUserProfileImage(
+        id,
+        parseInt(position)
+      );
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ error: error });
+    }
+  },
 };

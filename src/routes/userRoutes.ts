@@ -33,4 +33,9 @@ router.post(
 
 router.get("/:id/profile", UserController.getUserProfile);
 
+router.delete(
+  "/:id/profile/images/:position",
+  UserController.deleteUserProfileImage
+);
+
 export default router;

@@ -28,4 +28,4 @@ devDependencies/
 .idea/
 .vs/
 
-public/images/
+/public/images/

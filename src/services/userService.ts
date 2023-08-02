@@ -121,6 +121,7 @@ export const userService = {
   async getUsersInMap(): Promise<User[]> {
     return await User.findAll({
       attributes: ["id", "name", "latitude", "longitude", "image", "points"],
+      include: ["userImages"],
     });
   },
 

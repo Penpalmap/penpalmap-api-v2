@@ -117,4 +117,19 @@ export const UserController = {
       res.status(500).json({ error: error });
     }
   },
+
+  async reorderUserProfileImages(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { sourceIndex, destinationIndex } = req.body;
+      const user = await userService.reorderUserProfileImages(
+        id,
+        sourceIndex,
+        destinationIndex
+      );
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ error: error });
+    }
+  },
 };

@@ -158,4 +158,73 @@ export const userService = {
 
     await imageToDelete.destroy();
   },
+
+  async updateUserProfileImage(id: string, position: number): Promise<void> {
+    const user = await User.findByPk(id, {
+      include: ["userImages"],
+    });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const userImages = user.dataValues.userImages;
+
+    if (!userImages) {
+      throw new Error("User images not found");
+    }
+
+    const imageToSetAsProfile = userImages[position];
+
+    if (!imageToSetAsProfile) {
+      throw new Error("Image not found");
+    }
+
+    await User.update(
+      { image: imageToSetAsProfile.src },
+      {
+        where: {
+          id: id,
+        },
+      }
+    );
+  },
+
+  async reorderUserProfileImages(
+    id: string,
+    sourceIndex: number,
+    destinationIndex: number
+  ): Promise<void> {
+    const user = await User.findByPk(id, {
+      include: ["userImages"],
+    });
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const userImages = user.dataValues.userImages;
+
+    console.log("userImages", userImages);
+
+    if (!userImages) {
+      throw new Error("User images not found");
+    }
+
+    const imageToMove = userImages[sourceIndex];
+
+    if (!imageToMove) {
+      throw new Error("Image not found");
+    }
+
+    userImages.splice(sourceIndex, 1);
+    userImages.splice(destinationIndex, 0, imageToMove);
+
+    userImages.forEach((photo, index) => {
+      photo.position = index;
+    });
+
+    userImages.forEach(async (photo) => {
+      await photo.save();
+    });
+  },
 };

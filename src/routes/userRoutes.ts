@@ -38,4 +38,6 @@ router.delete(
   UserController.deleteUserProfileImage
 );
 
+router.put("/:id/profile/reorder", UserController.reorderUserProfileImages);
+
 export default router;

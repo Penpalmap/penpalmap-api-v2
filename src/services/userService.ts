@@ -2,6 +2,7 @@ import { Room } from "../../sequelize/models/Room";
 import { User } from "../../sequelize/models/User";
 import bcrypt from "bcrypt";
 import sequelize from "../../sequelize/sequelize";
+import { Message } from "../../sequelize/models/Message";
 
 export const userService = {
   // Get all users
@@ -74,31 +75,41 @@ export const userService = {
     await User.update(user, { where: { id } });
   },
 
-  async getUserRooms(id: string): Promise<User | null> {
-    return await User.findByPk(id, {
-      include: [
-        {
-          model: Room,
-          as: "rooms",
-          include: [
-            {
-              model: User,
-              as: "members",
-            },
-          ],
-          attributes: {
+  async getUserRooms(id: string) {
+    try {
+      return await User.findByPk(id, {
+        include: [
+          {
+            model: Room,
+            as: "rooms",
             include: [
-              [
-                sequelize.literal(
-                  `(SELECT COUNT(*) FROM "Messages" WHERE "Messages"."roomId" = "rooms"."id" AND "Messages"."isSeen" = false AND "Messages"."senderId" != '${id}')`
-                ),
-                "countUnreadMessages",
-              ],
+              {
+                model: User,
+                as: "members",
+              },
             ],
+            attributes: {
+              include: [
+                [
+                  sequelize.literal(
+                    `(SELECT COUNT(*) FROM "Messages" WHERE "Messages"."roomId" = "rooms"."id" AND "Messages"."isSeen" = false AND "Messages"."senderId" != '${id}')`
+                  ),
+                  "countUnreadMessages",
+                ],
+                [
+                  sequelize.literal(
+                    `(SELECT content FROM "Messages" WHERE "Messages"."roomId" = "rooms"."id" AND "Messages"."isSeen" = false ORDER BY "createdAt" DESC LIMIT 1)`
+                  ),
+                  "lastMessage",
+                ],
+              ],
+            },
           },
-        },
-      ],
-    });
+        ],
+      });
+    } catch (error) {
+      console.log(error);
+    }
   },
 
   async getUserByEmail(email: string): Promise<User | null> {

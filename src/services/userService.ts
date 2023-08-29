@@ -87,6 +87,15 @@ export const userService = {
                 model: User,
                 as: "members",
               },
+              {
+                model: Message,
+                as: "messages",
+                where: {
+                  isSeen: false,
+                },
+                order: [["createdAt", "DESC"]],
+                limit: 1,
+              },
             ],
             attributes: {
               include: [
@@ -95,12 +104,6 @@ export const userService = {
                     `(SELECT COUNT(*) FROM "Messages" WHERE "Messages"."roomId" = "rooms"."id" AND "Messages"."isSeen" = false AND "Messages"."senderId" != '${id}')`
                   ),
                   "countUnreadMessages",
-                ],
-                [
-                  sequelize.literal(
-                    `(SELECT content FROM "Messages" WHERE "Messages"."roomId" = "rooms"."id" AND "Messages"."isSeen" = false ORDER BY "createdAt" DESC LIMIT 1)`
-                  ),
-                  "lastMessage",
                 ],
               ],
             },

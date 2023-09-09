@@ -10,6 +10,8 @@ const createSocketServer = (server: Server) => {
   const NEW_CHAT_MESSAGE_EVENT = "NEW_MESSAGE";
   const SEND_MESSAGE_EVENT = "SEND_MESSAGE";
   const JOIN_ROOM_EVENT = "JOIN_ROOM";
+  const SEEN_MESSAGE = "SEEN_MESSAGE";
+  const SEND_SEEN_MESSAGE = "SEND_SEEN_MESSAGE";
 
   const io = new SocketServer(server, {
     pingTimeout: 60000,
@@ -36,6 +38,15 @@ const createSocketServer = (server: Server) => {
       const receiverSocketId = onlineUsers.get(message.receiverId);
       if (receiverSocketId) {
         socket.to(receiverSocketId).emit(NEW_CHAT_MESSAGE_EVENT, message);
+      }
+    });
+
+    socket.on(SEND_SEEN_MESSAGE, (data: any) => {
+      console.log("SEND_SEEN_MESSAGE", data);
+      const senderIdSocket = onlineUsers.get(data.senderId);
+      if (senderIdSocket) {
+        console.log("receiverSocketId", senderIdSocket);
+        socket.to(senderIdSocket).emit(SEEN_MESSAGE, data);
       }
     });
 

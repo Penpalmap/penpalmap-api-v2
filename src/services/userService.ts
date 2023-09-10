@@ -90,9 +90,7 @@ export const userService = {
               {
                 model: Message,
                 as: "messages",
-                where: {
-                  isSeen: false,
-                },
+
                 order: [["createdAt", "DESC"]],
                 limit: 1,
               },

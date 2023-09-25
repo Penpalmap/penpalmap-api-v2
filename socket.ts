@@ -10,6 +10,7 @@ const createSocketServer = (server: Server) => {
   const NEW_CHAT_MESSAGE_EVENT = "NEW_MESSAGE";
   const SEND_MESSAGE_EVENT = "SEND_MESSAGE";
   const JOIN_ROOM_EVENT = "JOIN_ROOM";
+  const LEAVE_ROOM_EVENT = "LEAVE_ROOM";
   const SEEN_MESSAGE = "SEEN_MESSAGE";
   const SEND_SEEN_MESSAGE = "SEND_SEEN_MESSAGE";
 
@@ -25,11 +26,11 @@ const createSocketServer = (server: Server) => {
       onlineUsers.set(userId, socket.id);
     });
 
-    socket.on("JOIN_ROOM", (roomId: string) => {
+    socket.on(JOIN_ROOM_EVENT, (roomId: string) => {
       socket.join(roomId);
     });
 
-    socket.on("LEAVE_ROOM", (roomId: string) => {
+    socket.on(LEAVE_ROOM_EVENT, (roomId: string) => {
       socket.leave(roomId);
     });
 

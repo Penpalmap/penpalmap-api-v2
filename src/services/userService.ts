@@ -3,6 +3,7 @@ import { User } from "../../sequelize/models/User";
 import bcrypt from "bcrypt";
 import sequelize from "../../sequelize/sequelize";
 import { Message } from "../../sequelize/models/Message";
+import { onlineUsers } from "../../globals";
 
 export const userService = {
   // Get all users
@@ -77,7 +78,7 @@ export const userService = {
 
   async getUserRooms(id: string) {
     try {
-      return await User.findByPk(id, {
+      const user = await User.findByPk(id, {
         include: [
           {
             model: Room,
@@ -108,6 +109,35 @@ export const userService = {
           },
         ],
       });
+
+      const rooms = user?.dataValues.rooms;
+
+      // add to members an attribute called isOnline and return the user with the updated rooms
+      const roomsWithMembers = rooms?.map((room: any) => {
+        const members = room.dataValues?.members;
+
+        const membersWithIsOnline = members?.map((member: any) => {
+          const socketId = onlineUsers.get(member.dataValues.id);
+          if (socketId) {
+            member.dataValues.isOnline = true;
+          } else {
+            member.dataValues.isOnline = false;
+          }
+          return member;
+        });
+
+        room.dataValues.members = membersWithIsOnline;
+        return room;
+      });
+
+      const userWithUpdatedRooms = {
+        ...user?.dataValues,
+        rooms: roomsWithMembers,
+      };
+
+      // console.log("userWithUpdatedRooms", userWithUpdatedRooms);
+
+      return userWithUpdatedRooms;
     } catch (error) {
       console.log(error);
     }

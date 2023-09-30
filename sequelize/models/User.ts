@@ -114,6 +114,13 @@ export class User extends Model<User> {
   })
   declare isNewUser: boolean;
 
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  })
+  declare connections: string;
+
   @HasMany(() => UserImages)
   userImages!: UserImages[];
 

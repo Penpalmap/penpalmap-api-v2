@@ -269,4 +269,18 @@ export const userService = {
       await photo.save();
     });
   },
+
+  async incrementUserConnection(id: string): Promise<void> {
+    const user = await User.findByPk(id);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const newNbConnections = parseInt(user.connections) + 1;
+
+    user.connections = newNbConnections.toString();
+
+    await user.save();
+  },
 };

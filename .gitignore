@@ -18,7 +18,6 @@ coverage/
 npm-debug.log*
 
 # Fichiers de build TypeScript
-*.js
 *.js.map
 
 # Fichiers de dépendances de développement

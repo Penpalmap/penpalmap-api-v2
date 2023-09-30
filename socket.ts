@@ -1,7 +1,7 @@
 import { Server } from "http";
 import { Server as SocketServer, Socket } from "socket.io";
-import { Message } from "./sequelize/models/Message";
 import { onlineUsers } from "./globals";
+import { userService } from "./src/services/userService";
 
 const createSocketServer = (server: Server) => {
   const START_TYPING_MESSAGE_EVENT = "START_TYPING_MESSAGE_EVENT";
@@ -24,6 +24,7 @@ const createSocketServer = (server: Server) => {
   io.on("connection", (socket: Socket) => {
     socket.on("add-user", (userId: string) => {
       onlineUsers.set(userId, socket.id);
+      userService.incrementUserConnection(userId);
     });
 
     socket.on(JOIN_ROOM_EVENT, (roomId: string) => {

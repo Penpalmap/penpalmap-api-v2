@@ -35,7 +35,6 @@ const createSocketServer = (server: Server) => {
     });
 
     socket.on(SEND_MESSAGE_EVENT, (message) => {
-      // io.in(message.roomId).emit(NEW_CHAT_MESSAGE_EVENT, message);
       const receiverSocketId = onlineUsers.get(message.receiverId);
       if (receiverSocketId) {
         socket.to(receiverSocketId).emit(NEW_CHAT_MESSAGE_EVENT, message);
@@ -51,9 +50,14 @@ const createSocketServer = (server: Server) => {
       }
     });
 
-    // socket.on(NEW_CHAT_MESSAGE_EVENT, (message: Message) => {
-    //   io.in(message.roomId).emit(NEW_CHAT_MESSAGE_EVENT, message);
-    // });
+    socket.on("disconnect", () => {
+      console.log("user disconnected");
+      onlineUsers.forEach((value, key) => {
+        if (value === socket.id) {
+          onlineUsers.delete(key);
+        }
+      });
+    });
 
     socket.on(STOP_TYPING_MESSAGE_EVENT, (data: any) => {
       io.in(data.roomId).emit(STOP_TYPING_MESSAGE_EVENT, data);

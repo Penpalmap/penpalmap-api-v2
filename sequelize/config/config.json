@@ -16,7 +16,7 @@
   "production": {
     "username": "postgres",
     "password": "m5N=SGHTG/QF5S",
-    "database": "penpalmap_online",
+    "database": "penpalmap",
     "host": "penpalmap.com",
     "dialect": "postgres"
   }

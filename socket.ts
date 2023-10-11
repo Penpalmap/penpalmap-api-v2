@@ -4,9 +4,7 @@ import { onlineUsers } from "./globals";
 import { userService } from "./src/services/userService";
 
 const createSocketServer = (server: Server) => {
-  const START_TYPING_MESSAGE_EVENT = "START_TYPING_MESSAGE_EVENT";
-  const STOP_TYPING_MESSAGE_EVENT = "STOP_TYPING_MESSAGE_EVENT";
-  const TYPING_MESSAGE_EVENT = "TYPING_MESSAGE_EVENT";
+  const TYPING_MESSAGE_EVENT = "IS_TYPING";
   const NEW_CHAT_MESSAGE_EVENT = "NEW_MESSAGE";
   const SEND_MESSAGE_EVENT = "SEND_MESSAGE";
   const JOIN_ROOM_EVENT = "JOIN_ROOM";
@@ -60,12 +58,13 @@ const createSocketServer = (server: Server) => {
       });
     });
 
-    socket.on(STOP_TYPING_MESSAGE_EVENT, (data: any) => {
-      io.in(data.roomId).emit(STOP_TYPING_MESSAGE_EVENT, data);
-    });
-
-    socket.on(TYPING_MESSAGE_EVENT, (data: any) => {
-      io.in(data.roomId).emit(TYPING_MESSAGE_EVENT, data);
+    socket.on(TYPING_MESSAGE_EVENT, (message: any) => {
+      console.log("TYPING_MESSAGE_EVENT", message);
+      const receiverSocketId = onlineUsers.get(message.receiverId);
+      if (receiverSocketId) {
+        console.log("receiverSocketId", receiverSocketId);
+        socket.to(receiverSocketId).emit(TYPING_MESSAGE_EVENT, message);
+      }
     });
   });
 };

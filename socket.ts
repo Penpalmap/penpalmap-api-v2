@@ -11,6 +11,7 @@ const createSocketServer = (server: Server) => {
   const LEAVE_ROOM_EVENT = "LEAVE_ROOM";
   const SEEN_MESSAGE = "SEEN_MESSAGE";
   const SEND_SEEN_MESSAGE = "SEND_SEEN_MESSAGE";
+  const ADD_USER = "ADD_USER";
 
   const io = new SocketServer(server, {
     pingTimeout: 60000,
@@ -20,7 +21,7 @@ const createSocketServer = (server: Server) => {
   });
 
   io.on("connection", (socket: Socket) => {
-    socket.on("add-user", (userId: string) => {
+    socket.on(ADD_USER, (userId: string) => {
       onlineUsers.set(userId, socket.id);
       userService.incrementUserConnection(userId);
     });

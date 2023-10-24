@@ -47,10 +47,10 @@ export const roomService = {
               model: User,
               as: "members",
             },
-            {
-              model: Message,
-              as: "messages",
-            },
+            // {
+            //   model: Message,
+            //   as: "messages",
+            // },
           ],
         });
       }
@@ -78,5 +78,22 @@ export const roomService = {
         },
       }
     );
+  },
+
+  async getMessagesByRoomId(
+    roomId: string,
+    limit: string = "10",
+    offset: string = "0",
+    sort: string = "desc"
+  ): Promise<Message[]> {
+    console.log("limit", limit);
+    return await Message.findAll({
+      where: {
+        roomId: roomId,
+      },
+      order: [["createdAt", sort]],
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+    });
   },
 };

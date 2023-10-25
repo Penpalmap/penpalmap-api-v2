@@ -12,6 +12,7 @@ const createSocketServer = (server: Server) => {
   const SEEN_MESSAGE = "SEEN_MESSAGE";
   const SEND_SEEN_MESSAGE = "SEND_SEEN_MESSAGE";
   const ADD_USER = "ADD_USER";
+  const ONLINE_USERS = "ONLINE_USERS";
 
   const io = new SocketServer(server, {
     pingTimeout: 60000,
@@ -24,6 +25,8 @@ const createSocketServer = (server: Server) => {
     socket.on(ADD_USER, (userId: string) => {
       onlineUsers.set(userId, socket.id);
       userService.incrementUserConnection(userId);
+      // envoyer à tous les utilisateurs connectés la liste des utilisateurs connectés
+      io.emit(ONLINE_USERS, [...onlineUsers.keys()]);
     });
 
     socket.on(JOIN_ROOM_EVENT, (roomId: string) => {
@@ -57,6 +60,7 @@ const createSocketServer = (server: Server) => {
           onlineUsers.delete(key);
         }
       });
+      io.emit(ONLINE_USERS, [...onlineUsers.keys()]);
     });
 
     socket.on(TYPING_MESSAGE_EVENT, (message: any) => {

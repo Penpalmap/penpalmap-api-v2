@@ -184,25 +184,27 @@ export const userService = {
     }
 
     const userImages = user.dataValues.userImages;
-
+    console.log("userImages", userImages);
     if (!userImages) {
       throw new Error("User images not found");
     }
 
-    const imageToDelete = userImages[position];
+    const imageToDelete = userImages.find(
+      (image) => image.position == position
+    );
 
+    console.log("imageToDelete", imageToDelete);
     if (!imageToDelete) {
       throw new Error("Image not found");
     }
 
     await imageToDelete.destroy();
 
-    const newImages = await UserImages.findAll({
-      where: {
-        userId: id,
-      },
-      order: [["position", "ASC"]],
-    });
+    const newImages = userImages.filter(
+      (image) => image.id !== imageToDelete.id
+    );
+
+    console.log("newImages", newImages);
 
     newImages.forEach(async (image, index) => {
       await image.update({

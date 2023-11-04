@@ -87,7 +87,7 @@ export class User extends Model<User> {
     type: DataType.STRING,
     allowNull: true,
   })
-  declare image: string;
+  image: string | undefined | null;
 
   @Column({
     type: DataType.STRING,

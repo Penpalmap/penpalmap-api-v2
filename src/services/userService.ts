@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import sequelize from "../../sequelize/sequelize";
 import { Message } from "../../sequelize/models/Message";
 import { onlineUsers } from "../../globals";
+import { UserImages } from "../../sequelize/models/UserImages";
 
 export const userService = {
   // Get all users
@@ -187,10 +188,6 @@ export const userService = {
     if (!userImages) {
       throw new Error("User images not found");
     }
-    console.log("userImages", userImages);
-    if (userImages.length === 1) {
-      throw new Error("User must have at least one image");
-    }
 
     const imageToDelete = userImages[position];
 
@@ -199,6 +196,39 @@ export const userService = {
     }
 
     await imageToDelete.destroy();
+
+    const newImages = await UserImages.findAll({
+      where: {
+        userId: id,
+      },
+      order: [["position", "ASC"]],
+    });
+
+    newImages.forEach(async (image, index) => {
+      await image.update({
+        position: index,
+      });
+    });
+
+    if (position == 0 && newImages.length > 0) {
+      await User.update(
+        { image: newImages[0].src },
+        {
+          where: {
+            id: id,
+          },
+        }
+      );
+    } else if (position == 0 && newImages.length == 0) {
+      await User.update(
+        { image: null },
+        {
+          where: {
+            id: id,
+          },
+        }
+      );
+    }
   },
 
   async updateUserProfileImage(id: string, position: number): Promise<void> {
@@ -232,42 +262,54 @@ export const userService = {
     );
   },
 
-  async reorderUserProfileImages(
-    id: string,
-    sourceIndex: number,
-    destinationIndex: number
-  ): Promise<void> {
+  async reorderUserProfileImages(id: string, newImagesOrder: UserImages[]) {
     const user = await User.findByPk(id, {
       include: ["userImages"],
     });
+
     if (!user) {
       throw new Error("User not found");
     }
 
     const userImages = user.dataValues.userImages;
 
-    console.log("userImages", userImages);
-
     if (!userImages) {
       throw new Error("User images not found");
     }
 
-    const imageToMove = userImages[sourceIndex];
+    const imagesIds = userImages.map((image) => image.id);
 
-    if (!imageToMove) {
-      throw new Error("Image not found");
+    const newImagesOrderIds = newImagesOrder.map((image) => image.id);
+    console.log("newImagesOrderIds", newImagesOrderIds);
+
+    if (imagesIds.length !== newImagesOrderIds.length) {
+      throw new Error("Images length is not the same");
     }
 
-    userImages.splice(sourceIndex, 1);
-    userImages.splice(destinationIndex, 0, imageToMove);
-
-    userImages.forEach((photo, index) => {
-      photo.position = index;
+    const isSameArray = imagesIds.every((id, index) => {
+      return id === newImagesOrderIds[index];
     });
 
-    userImages.forEach(async (photo) => {
-      await photo.save();
+    if (isSameArray) {
+      throw new Error("Images order is the same");
+    }
+
+    await UserImages.destroy({
+      where: {
+        userId: id,
+      },
     });
+
+    await UserImages.bulkCreate(newImagesOrder);
+
+    await User.update(
+      { image: newImagesOrder[0].src },
+      {
+        where: {
+          id: id,
+        },
+      }
+    );
   },
 
   async incrementUserConnection(id: string): Promise<void> {

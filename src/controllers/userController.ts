@@ -84,12 +84,14 @@ export const UserController = {
       const file = req.file;
       const userId = req.params.id;
 
-      const user = await UploadService.uploadUserImage({
+      const image = await UploadService.uploadUserImage({
         userId,
         position,
         file,
       });
-      res.json(user);
+
+      console.log("image", image);
+      res.json(image);
     } catch (error) {
       res.status(500).json({ error: error });
     }
@@ -121,11 +123,11 @@ export const UserController = {
   async reorderUserProfileImages(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const { sourceIndex, destinationIndex } = req.body;
+      const { newImagesOrder } = req.body;
+      console.log("newUserImages", newImagesOrder);
       const user = await userService.reorderUserProfileImages(
         id,
-        sourceIndex,
-        destinationIndex
+        newImagesOrder
       );
       res.json(user);
     } catch (error) {

@@ -272,22 +272,18 @@ export const userService = {
     if (!user) {
       throw new Error("User not found");
     }
-
     const userImages = user.dataValues.userImages;
 
     if (!userImages) {
       throw new Error("User images not found");
     }
-
     const imagesIds = userImages.map((image) => image.id);
 
     const newImagesOrderIds = newImagesOrder.map((image) => image.id);
-    console.log("newImagesOrderIds", newImagesOrderIds);
 
     if (imagesIds.length !== newImagesOrderIds.length) {
       throw new Error("Images length is not the same");
     }
-
     const isSameArray = imagesIds.every((id, index) => {
       return id === newImagesOrderIds[index];
     });
@@ -295,7 +291,6 @@ export const userService = {
     if (isSameArray) {
       throw new Error("Images order is the same");
     }
-
     await UserImages.destroy({
       where: {
         userId: id,

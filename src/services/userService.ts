@@ -268,11 +268,12 @@ export const userService = {
     const user = await User.findByPk(id, {
       include: ["userImages"],
     });
-
     if (!user) {
       throw new Error("User not found");
     }
-    const userImages = user.dataValues.userImages;
+    const userImages = user.dataValues.userImages.sort((a, b) => {
+      return a.position - b.position;
+    });
 
     if (!userImages) {
       throw new Error("User images not found");

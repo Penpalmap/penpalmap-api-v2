@@ -121,6 +121,12 @@ export class User extends Model<User> {
   })
   declare connections: string;
 
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+  })
+  declare langageUsed: string;
+
   @HasMany(() => UserImages)
   userImages!: UserImages[];
 

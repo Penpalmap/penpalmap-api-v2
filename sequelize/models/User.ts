@@ -125,7 +125,7 @@ export class User extends Model<User> {
     type: DataType.STRING,
     allowNull: true,
   })
-  declare langageUsed: string;
+  declare languageUsed: string;
 
   @HasMany(() => UserImages)
   userImages!: UserImages[];

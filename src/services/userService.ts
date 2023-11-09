@@ -154,11 +154,13 @@ export const userService = {
   },
 
   async getUserByGoogleId(googleId: string): Promise<User | null> {
-    return await User.findOne({
+    const user = await User.findOne({
       where: {
         googleId: googleId,
       },
     });
+
+    return user;
   },
 
   async getUsersInMap(): Promise<User[]> {

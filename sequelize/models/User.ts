@@ -127,6 +127,13 @@ export class User extends Model<User> {
   })
   declare languageUsed: string;
 
+  @Column({
+    type: DataType.NUMBER,
+    allowNull: true,
+    defaultValue: () => Math.floor(Math.random() * 3) + 1,
+  })
+  declare avatarNumber: number;
+
   @HasMany(() => UserImages)
   userImages!: UserImages[];
 

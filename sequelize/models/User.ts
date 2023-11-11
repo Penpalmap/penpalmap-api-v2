@@ -130,7 +130,7 @@ export class User extends Model<User> {
   @Column({
     type: DataType.NUMBER,
     allowNull: true,
-    defaultValue: () => Math.floor(Math.random() * 3) + 1,
+    defaultValue: () => Math.floor(Math.random() * 24) + 1,
   })
   declare avatarNumber: number;
 

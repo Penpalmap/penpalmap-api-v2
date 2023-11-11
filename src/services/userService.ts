@@ -173,6 +173,7 @@ export const userService = {
         "image",
         "points",
         "avatarNumber",
+        "gender",
       ],
       include: ["userImages"],
     });

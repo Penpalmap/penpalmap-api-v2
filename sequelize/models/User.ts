@@ -16,6 +16,7 @@ import { UserImages } from "./UserImages";
 import { Room } from "./Room";
 import { UserRoom } from "./UserRoom";
 import { Message } from "./Message";
+import { UserLanguage } from "./UserLanguage";
 
 @DefaultScope(() => ({
   attributes: { exclude: ["password"] },
@@ -142,4 +143,7 @@ export class User extends Model<User> {
 
   @HasMany(() => Message)
   messages!: Message[];
+
+  @HasMany(() => UserLanguage)
+  userLanguages!: UserLanguage[];
 }

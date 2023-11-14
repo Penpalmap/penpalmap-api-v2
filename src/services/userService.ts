@@ -5,6 +5,7 @@ import sequelize from "../../sequelize/sequelize";
 import { Message } from "../../sequelize/models/Message";
 import { onlineUsers } from "../../globals";
 import { UserImages } from "../../sequelize/models/UserImages";
+import { UserLanguage } from "../../sequelize/models/UserLanguage";
 
 export const userService = {
   // Get all users
@@ -74,7 +75,18 @@ export const userService = {
 
   // Update user
   async updateUser(id: string, user: User): Promise<void> {
-    await User.update(user, { where: { id } });
+    try {
+      const { userLanguages, ...userDataWithoutLanguages } = user;
+
+      await User.update(userDataWithoutLanguages, { where: { id } });
+
+      if (userLanguages && userLanguages.length > 0) {
+        // Ajoute les nouvelles langues
+        await UserLanguage.bulkCreate(userLanguages);
+      }
+    } catch (error) {
+      console.log(error);
+    }
   },
 
   async getUserRooms(id: string) {

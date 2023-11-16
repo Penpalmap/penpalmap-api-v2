@@ -6,7 +6,7 @@ module.exports = {
     await queryInterface.addColumn("Users", "avatarNumber", {
       type: Sequelize.INTEGER,
       allowNull: true,
-      defaultValue: () => Math.floor(Math.random() * 3) + 1,
+      defaultValue: () => Math.floor(Math.random() * 24) + 1,
     });
   },
 

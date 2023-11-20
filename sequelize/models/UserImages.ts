@@ -2,12 +2,16 @@ import {
   BelongsTo,
   Column,
   DataType,
+  DefaultScope,
   ForeignKey,
   Model,
   Table,
 } from "sequelize-typescript";
 import { User } from "./User";
 
+@DefaultScope(() => ({
+  attributes: { exclude: ["createdAt", "updatedAt"] },
+}))
 @Table
 export class UserImages extends Model<UserImages> {
   @Column({

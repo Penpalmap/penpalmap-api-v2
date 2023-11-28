@@ -17,6 +17,7 @@ import { Room } from "./Room";
 import { UserRoom } from "./UserRoom";
 import { Message } from "./Message";
 import { UserLanguage } from "./UserLanguage";
+import Sequelize from "sequelize/types/sequelize";
 
 @DefaultScope(() => ({
   attributes: { exclude: ["password"] },
@@ -75,6 +76,12 @@ export class User extends Model<User> {
     allowNull: true,
   })
   declare latitude: number;
+
+  @Column({
+    type: DataType.GEOMETRY('POINT', 4326),
+    allowNull: true,
+  })
+  declare geom: Sequelize["literal"];
 
   @Column({
     type: DataType.BIGINT,

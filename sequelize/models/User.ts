@@ -78,7 +78,7 @@ export class User extends Model<User> {
   declare latitude: number;
 
   @Column({
-    type: DataType.GEOMETRY('POINT', 4326),
+    type: DataType.GEOMETRY("POINT", 4326),
     allowNull: true,
   })
   declare geom: Sequelize["literal"];

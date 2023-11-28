@@ -28,3 +28,7 @@ devDependencies/
 .vs/
 
 /public/images/
+
+# Ajout des fichiers package.json et package-lock.json
+package-lock.json
+package.json

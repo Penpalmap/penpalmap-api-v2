@@ -6,6 +6,7 @@ import { Message } from "../../sequelize/models/Message";
 import { onlineUsers } from "../../globals";
 import { UserImages } from "../../sequelize/models/UserImages";
 import { UserLanguage } from "../../sequelize/models/UserLanguage";
+import { Sequelize } from "sequelize";
 
 export const userService = {
   // Get all users
@@ -76,12 +77,21 @@ export const userService = {
   // Update user
   async updateUser(id: string, user: User): Promise<void> {
     try {
-      const { userLanguages, ...userDataWithoutLanguages } = user;
-
+      const { latitude, longitude, userLanguages, ...userDataWithoutLanguages } = user;
+  
+      // Mettre à jour les autres champs utilisateur
       await User.update(userDataWithoutLanguages, { where: { id } });
-
+  
+      // Mettre à jour la colonne GEOM
+      if (latitude !== undefined && longitude !== undefined) {
+        await User.update(
+          { geom: Sequelize.literal(`ST_SetSRID(ST_MakePoint(${longitude}, ${latitude}), 4326)`) },
+          { where: { id } }
+        );
+      }
+  
+      // Ajouter les nouvelles langues
       if (userLanguages && userLanguages.length > 0) {
-        // Ajoute les nouvelles langues
         await UserLanguage.bulkCreate(userLanguages);
       }
     } catch (error) {

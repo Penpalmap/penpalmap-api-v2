@@ -66,18 +66,6 @@ export class User extends Model<User> {
   declare googleId: string;
 
   @Column({
-    type: DataType.REAL,
-    allowNull: true,
-  })
-  declare longitude: number;
-
-  @Column({
-    type: DataType.REAL,
-    allowNull: true,
-  })
-  declare latitude: number;
-
-  @Column({
     type: DataType.GEOMETRY("POINT", 4326),
     allowNull: true,
   })

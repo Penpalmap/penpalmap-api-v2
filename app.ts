@@ -1,6 +1,12 @@
 // app.ts
 
-import express, { Application, Request, Response, NextFunction } from "express";
+import express, {
+  Application,
+  Request,
+  Response,
+  NextFunction,
+  Router,
+} from "express";
 import userRoutes from "./src/routes/userRoutes";
 import authRoutes from "./src/routes/authRoutes";
 import messageRoutes from "./src/routes/messageRoutes";
@@ -8,6 +14,7 @@ import mapRoutes from "./src/routes/mapRoutes";
 import roomRoutes from "./src/routes/roomRoutes";
 import sequelize from "./sequelize/sequelize";
 import createSocketServer from "./socket";
+import { authenticateToken } from "./src/middleware/authenticateToken";
 
 const app: Application = express();
 
@@ -32,6 +39,15 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   next();
+});
+
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api/auth")) {
+    // Passer au middleware suivant si c'est une route sous /api/auth
+    return next();
+  }
+  // Appliquer authenticateToken pour toutes les autres routes
+  authenticateToken(req, res, next);
 });
 
 // Montage des routes des utilisateurs

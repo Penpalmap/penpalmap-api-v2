@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { UserController } from "../controllers/userController";
 import { upload } from "../../uploadConfig";
+import { authenticateToken } from "../middleware/authenticateToken";
 
 const router = Router();
 

@@ -7,6 +7,7 @@ import { onlineUsers } from "../../globals";
 import { UserImages } from "../../sequelize/models/UserImages";
 import { UserLanguage } from "../../sequelize/models/UserLanguage";
 import { Sequelize } from "sequelize";
+import { UserInput } from "../../types/types";
 
 export const userService = {
   // Get all users
@@ -75,7 +76,7 @@ export const userService = {
   },
 
   // Update user
-  async updateUser(id: string, user: User): Promise<void> {
+  async updateUser(id: string, user: UserInput): Promise<void> {
     try {
       const {
         latitude,
@@ -199,12 +200,11 @@ export const userService = {
       attributes: [
         "id",
         "name",
-        "latitude",
-        "longitude",
         "image",
         "points",
         "avatarNumber",
         "gender",
+        "geom",
       ],
       include: ["userImages"],
     });

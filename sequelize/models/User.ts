@@ -18,6 +18,7 @@ import { UserRoom } from "./UserRoom";
 import { Message } from "./Message";
 import { UserLanguage } from "./UserLanguage";
 import Sequelize from "sequelize/types/sequelize";
+import { ResetPassword } from "./ResetPassword";
 
 @DefaultScope(() => ({
   attributes: { exclude: ["password"] },
@@ -141,4 +142,7 @@ export class User extends Model<User> {
 
   @HasMany(() => UserLanguage)
   userLanguages!: UserLanguage[];
+
+  @HasMany(() => ResetPassword)
+  resetPasswords!: ResetPassword[];
 }

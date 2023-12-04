@@ -29,4 +29,28 @@ export const authService = {
       throw error; // Propagate the error
     }
   },
+
+  async forgotPassword(email: string) {
+    try {
+      const user = await User.findOne({
+        where: {
+          email: email,
+        },
+      });
+
+      if (!user) {
+        console.error("User not found for email:", email);
+
+        return {
+          success: false,
+          message: "Aucun utilisateur n'a été trouvé avec cette adresse email",
+        };
+      }
+
+      return { success: true, message: "Email sent" };
+    } catch (error) {
+      console.error("Error in forgotPassword:", error);
+      throw error; // Propagate the error
+    }
+  },
 };

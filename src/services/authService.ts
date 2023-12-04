@@ -63,7 +63,7 @@ export const authService = {
         Messages: [
           {
             From: {
-              Email: "colin.noiret@penpalmap.com",
+              Email: "contact@penpalmap.com",
               Name: "Penpalmap",
             },
             To: [

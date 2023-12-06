@@ -204,7 +204,15 @@ export const userService = {
         "points",
         "avatarNumber",
         "gender",
-        "geom",
+        [
+          sequelize.literal(`
+          ST_Point(
+            ST_X(geom) + (RANDOM() * 0.01 - 0.05),
+            ST_Y(geom) + (RANDOM() * 0.01 - 0.05)
+          )
+          `),
+          'geomR',
+        ],
       ],
       include: ["userImages"],
     });

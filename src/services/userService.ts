@@ -211,7 +211,7 @@ export const userService = {
             ST_Y(geom) + (RANDOM() * 0.01 - 0.05)
           )
           `),
-          'geomR',
+          "geomR",
         ],
       ],
       include: ["userImages"],

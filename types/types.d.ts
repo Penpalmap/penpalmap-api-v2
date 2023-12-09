@@ -26,3 +26,9 @@ export type UserInput = {
   updatedAt: Date;
   userLanguages: any;
 };
+
+import { Request } from "express";
+import { User } from "../sequelize/models/User";
+export interface IGetUserAuthInfoRequest extends Request {
+  user: User; // or any other type
+}

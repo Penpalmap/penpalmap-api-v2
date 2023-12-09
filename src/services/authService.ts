@@ -3,6 +3,9 @@ import { User } from "../../sequelize/models/User";
 import crypto from "crypto";
 import { ResetPassword } from "../../sequelize/models/ResetPassword";
 import { mailjetConfig } from "../../mailjetConfig";
+import jwt from "jsonwebtoken";
+import { userService } from "./userService";
+import { OAuth2Client } from "google-auth-library";
 
 export const authService = {
   // Login user with Credentials
@@ -26,7 +29,13 @@ export const authService = {
         throw new Error("Incorrect credentials");
       }
 
-      return user;
+      const token = jwt.sign(
+        { userId: user.id, email: user.email },
+        process.env.JWT_SECRET as string,
+        { expiresIn: "1h" }
+      );
+
+      return token;
     } catch (error) {
       console.error("Error in loginUserWithCredentials:", error);
       throw error; // Propagate the error
@@ -141,6 +150,80 @@ export const authService = {
         success: false,
         message: "An error occurred while resetting the password",
       };
+    }
+  },
+
+  async loginUser(credentials: any) {
+    const token = this.loginUserWithCredentials(credentials);
+
+    return token;
+  },
+
+  async registerUser(user: User) {
+    try {
+      userService.createUser(user);
+
+      const token = jwt.sign(
+        { userId: user.id, email: user.email },
+        process.env.JWT_SECRET as string,
+        { expiresIn: "1h" }
+      );
+
+      return token;
+    } catch (error) {
+      console.error("Error in registerUser:", error);
+      throw error; // Propagate the error
+    }
+  },
+
+  async loginUserWithGoogle(tokenGoogle: string) {
+    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+    const ticket = await client.verifyIdToken({
+      idToken: tokenGoogle,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+
+    if (!payload) {
+      throw new Error("Error getting payload");
+    }
+
+    const { email, sub, name } = payload;
+
+    // if the user exists
+    const user = await User.findOne({
+      where: {
+        googleId: sub,
+        email: email,
+      },
+    });
+
+    if (user) {
+      const token = jwt.sign(
+        { userId: user.id, email: user.email },
+        process.env.JWT_SECRET as string,
+        { expiresIn: "1h" }
+      );
+
+      return token;
+    } else {
+      const firstname = name?.split(" ")[0];
+
+      const newUser = await userService.createUser({
+        name: firstname,
+        email: payload.email,
+        googleId: payload.sub,
+      } as User);
+
+      const token = jwt.sign(
+        { userId: newUser.id, email: newUser.email },
+        process.env.JWT_SECRET as string,
+        { expiresIn: "1h" }
+      );
+
+      return token;
     }
   },
 };

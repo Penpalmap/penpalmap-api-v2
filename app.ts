@@ -8,6 +8,9 @@ import mapRoutes from "./src/routes/mapRoutes";
 import roomRoutes from "./src/routes/roomRoutes";
 import sequelize from "./sequelize/sequelize";
 import createSocketServer from "./socket";
+import { User } from "./sequelize/models/User";
+import { IGetUserAuthInfoRequest } from "./types/types";
+import { authenticateToken } from "./authorize";
 
 const app: Application = express();
 
@@ -34,9 +37,13 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
+app.use("/api/auth", authRoutes);
+
+// Middleware pour l'authentification
+app.use(authenticateToken);
+
 // Montage des routes des utilisateurs
 app.use("/api/users", userRoutes);
-app.use("/api/auth", authRoutes);
 app.use("/api/map", mapRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/rooms", roomRoutes);

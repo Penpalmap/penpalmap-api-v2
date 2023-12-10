@@ -124,7 +124,6 @@ export const UserController = {
     try {
       const { id } = req.params;
       const { newImagesOrder } = req.body;
-      console.log("newUserImages", newImagesOrder);
       const user = await userService.reorderUserProfileImages(
         id,
         newImagesOrder

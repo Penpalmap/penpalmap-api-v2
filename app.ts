@@ -7,7 +7,8 @@ import messageRoutes from "./src/routes/messageRoutes";
 import mapRoutes from "./src/routes/mapRoutes";
 import roomRoutes from "./src/routes/roomRoutes";
 import sequelize from "./sequelize/sequelize";
-import createSocketServer from "./socket";
+import { authenticateToken } from "./authorize";
+import cors from "cors";
 
 const app: Application = express();
 
@@ -15,6 +16,14 @@ const app: Application = express();
 app.use(express.json());
 
 app.use(express.static("public"));
+
+app.use(
+  cors({
+    origin: "*", // ou spécifiez les origines autorisées
+    methods: "GET, POST, PUT, DELETE",
+    allowedHeaders: "Content-Type, Authorization",
+  })
+);
 
 // Synchronisez les modèles avec la base de données
 sequelize
@@ -34,9 +43,12 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
+app.use("/api/auth", authRoutes);
+
+// Middleware pour l'authentification
+app.use(authenticateToken);
 // Montage des routes des utilisateurs
 app.use("/api/users", userRoutes);
-app.use("/api/auth", authRoutes);
 app.use("/api/map", mapRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/rooms", roomRoutes);

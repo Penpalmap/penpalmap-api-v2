@@ -6,6 +6,7 @@ import { mailjetConfig } from "../../mailjetConfig";
 import jwt from "jsonwebtoken";
 import { userService } from "./userService";
 import { OAuth2Client } from "google-auth-library";
+import { UserImages } from "../../sequelize/models/UserImages";
 
 export const authService = {
   // Login user with Credentials
@@ -33,6 +34,7 @@ export const authService = {
         where: {
           email: email,
         },
+        include: ["userImages"],
       });
 
       const token = jwt.sign(
@@ -204,6 +206,7 @@ export const authService = {
         googleId: sub,
         email: email,
       },
+      include: ["userImages"],
     });
 
     if (user) {
@@ -221,8 +224,15 @@ export const authService = {
         googleId: payload.sub,
       } as User);
 
+      const userWithAllData = await User.findOne({
+        where: {
+          id: newUser.id,
+        },
+        include: ["userImages"],
+      });
+
       const token = jwt.sign(
-        { userId: newUser.id, email: newUser.email },
+        { user: userWithAllData },
         process.env.JWT_SECRET as string,
         { expiresIn: "1h" }
       );

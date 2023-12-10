@@ -196,7 +196,6 @@ export const userService = {
   },
 
   async getUsersInMap(): Promise<User[]> {
-    console.log("getUsersInMap");
     return await User.findAll({
       attributes: [
         "id",

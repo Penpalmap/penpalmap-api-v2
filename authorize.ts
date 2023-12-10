@@ -5,8 +5,9 @@ import { User } from "./sequelize/models/User";
 const jwt = require("jsonwebtoken");
 
 export const authenticateToken = (req, res, next: NextFunction) => {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
+  const authorization = req.headers.authorization;
+
+  const token = authorization && authorization.split(" ")[1]; // Bearer TOKEN
 
   if (token == null) return res.sendStatus(401); // Pas de token, non autorisé
 

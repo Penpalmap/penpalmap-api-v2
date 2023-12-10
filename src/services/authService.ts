@@ -29,8 +29,14 @@ export const authService = {
         throw new Error("Incorrect credentials");
       }
 
+      const userWithoutPassword = await User.findOne({
+        where: {
+          email: email,
+        },
+      });
+
       const token = jwt.sign(
-        { userId: user.id, email: user.email },
+        { userWithoutPassword },
         process.env.JWT_SECRET as string,
         { expiresIn: "1h" }
       );
@@ -201,11 +207,9 @@ export const authService = {
     });
 
     if (user) {
-      const token = jwt.sign(
-        { userId: user.id, email: user.email },
-        process.env.JWT_SECRET as string,
-        { expiresIn: "1h" }
-      );
+      const token = jwt.sign({ user }, process.env.JWT_SECRET as string, {
+        expiresIn: "1h",
+      });
 
       return token;
     } else {

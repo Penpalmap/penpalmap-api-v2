@@ -5,7 +5,6 @@ import { IGetUserAuthInfoRequest } from "../../types/types";
 const MapController = {
   getUsers: async (req: IGetUserAuthInfoRequest, res: Response) => {
     try {
-      console.log("getUsers", req.user);
       const users = await userService.getUsersInMap();
       res.json(users);
     } catch (error) {

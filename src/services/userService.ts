@@ -17,7 +17,9 @@ export const userService = {
 
   // Get user by id
   async getUserById(id: string): Promise<User | null> {
-    return await User.findByPk(id);
+    return await User.findByPk(id, {
+      include: ["userImages"],
+    });
   },
 
   // Create user

@@ -30,15 +30,8 @@ export const authService = {
         throw new Error("Incorrect credentials");
       }
 
-      const userWithoutPassword = await User.findOne({
-        where: {
-          email: email,
-        },
-        include: ["userImages"],
-      });
-
       const token = jwt.sign(
-        { userWithoutPassword },
+        { id: user.id, email: user.email },
         process.env.JWT_SECRET as string,
         { expiresIn: "1h" }
       );
@@ -169,14 +162,17 @@ export const authService = {
 
   async registerUser(user: User) {
     try {
-      userService.createUser(user);
+      const userCreated = await userService.createUser(user);
 
       const token = jwt.sign(
-        { userId: user.id, email: user.email },
+        { id: userCreated.id, email: userCreated.email },
         process.env.JWT_SECRET as string,
-        { expiresIn: "1h" }
+        {
+          expiresIn: "1h",
+        }
       );
 
+      console.log("user", user);
       return token;
     } catch (error) {
       console.error("Error in registerUser:", error);
@@ -206,13 +202,16 @@ export const authService = {
         googleId: sub,
         email: email,
       },
-      include: ["userImages"],
     });
 
     if (user) {
-      const token = jwt.sign({ user }, process.env.JWT_SECRET as string, {
-        expiresIn: "1h",
-      });
+      const token = jwt.sign(
+        { id: user.id, email: user.email },
+        process.env.JWT_SECRET as string,
+        {
+          expiresIn: "1h",
+        }
+      );
 
       return token;
     } else {
@@ -224,15 +223,8 @@ export const authService = {
         googleId: payload.sub,
       } as User);
 
-      const userWithAllData = await User.findOne({
-        where: {
-          id: newUser.id,
-        },
-        include: ["userImages"],
-      });
-
       const token = jwt.sign(
-        { user: userWithAllData },
+        { id: newUser.id, email: newUser.email },
         process.env.JWT_SECRET as string,
         { expiresIn: "1h" }
       );

@@ -7,6 +7,7 @@ import jwt from "jsonwebtoken";
 import { userService } from "./userService";
 import { OAuth2Client } from "google-auth-library";
 import { UserImages } from "../../sequelize/models/UserImages";
+import { RefreshTokens } from "../../sequelize/models/RefreshTokens";
 
 export const authService = {
   // Login user with Credentials
@@ -30,13 +31,13 @@ export const authService = {
         throw new Error("Incorrect credentials");
       }
 
-      const token = jwt.sign(
-        { id: user.id, email: user.email },
-        process.env.JWT_SECRET as string,
-        { expiresIn: "1h" }
-      );
+      const token = generateAccessToken(user);
+      const refreshToken = generateRefreshToken(user);
 
-      return token;
+      await storeRefreshTokenInDB(user.id, refreshToken);
+
+      // return token;
+      return { accessToken: token, refreshToken: refreshToken };
     } catch (error) {
       console.error("Error in loginUserWithCredentials:", error);
       throw error; // Propagate the error
@@ -164,16 +165,13 @@ export const authService = {
     try {
       const userCreated = await userService.createUser(user);
 
-      const token = jwt.sign(
-        { id: userCreated.id, email: userCreated.email },
-        process.env.JWT_SECRET as string,
-        {
-          expiresIn: "1h",
-        }
-      );
+      const token = generateAccessToken(userCreated);
+      const refreshToken = generateRefreshToken(userCreated);
 
-      console.log("user", user);
-      return token;
+      await storeRefreshTokenInDB(userCreated.id, refreshToken);
+
+      // return token;
+      return { accessToken: token, refreshToken: refreshToken };
     } catch (error) {
       console.error("Error in registerUser:", error);
       throw error; // Propagate the error
@@ -205,15 +203,13 @@ export const authService = {
     });
 
     if (user) {
-      const token = jwt.sign(
-        { id: user.id, email: user.email },
-        process.env.JWT_SECRET as string,
-        {
-          expiresIn: "1h",
-        }
-      );
+      const token = generateAccessToken(user);
+      const refreshToken = generateRefreshToken(user);
 
-      return token;
+      await storeRefreshTokenInDB(user.id, refreshToken);
+
+      // return token;
+      return { accessToken: token, refreshToken: refreshToken };
     } else {
       const firstname = name?.split(" ")[0];
 
@@ -223,13 +219,70 @@ export const authService = {
         googleId: payload.sub,
       } as User);
 
-      const token = jwt.sign(
-        { id: newUser.id, email: newUser.email },
-        process.env.JWT_SECRET as string,
-        { expiresIn: "1h" }
-      );
+      const token = generateAccessToken(newUser);
+      const refreshToken = generateRefreshToken(newUser);
 
-      return token;
+      await storeRefreshTokenInDB(newUser.id, refreshToken);
+
+      // return token;
+      return { accessToken: token, refreshToken: refreshToken };
     }
   },
+
+  async refreshToken(refreshTokenFromClient) {
+    try {
+      if (!refreshTokenFromClient) {
+        return null;
+      }
+
+      jwt.verify(
+        refreshTokenFromClient,
+        process.env.REFRESH_TOKEN_SECRET,
+        async (err, decoded) => {
+          if (err) {
+            return null;
+          }
+
+          // Vérifier si le refreshToken est stocké dans la base de données
+          const storedToken = await RefreshTokens.findOne({
+            where: { token: refreshTokenFromClient },
+          });
+
+          if (!storedToken) {
+            return null;
+          }
+
+          // Trouver l'utilisateur associé au refreshToken
+          const user = await User.findByPk(decoded.userId);
+          if (!user) {
+            return null;
+          }
+
+          const token = generateAccessToken(user.dataValues);
+
+          console.log("tokenfbefezi", token);
+          return token;
+        }
+      );
+    } catch (error) {
+      console.error("Error in refreshToken function:", error);
+      return null;
+    }
+  },
+};
+
+const generateAccessToken = (user) => {
+  return jwt.sign({ userId: user.id }, process.env.ACCESS_TOKEN_SECRET, {
+    expiresIn: "15m",
+  });
+};
+
+const generateRefreshToken = (user) => {
+  return jwt.sign({ userId: user.id }, process.env.REFRESH_TOKEN_SECRET, {
+    expiresIn: "7d",
+  });
+};
+
+const storeRefreshTokenInDB = async (userId, refreshToken) => {
+  await RefreshTokens.create({ userId, token: refreshToken });
 };

@@ -19,6 +19,7 @@ import { Message } from "./Message";
 import { UserLanguage } from "./UserLanguage";
 import Sequelize from "sequelize/types/sequelize";
 import { ResetPassword } from "./ResetPassword";
+import { RefreshTokens } from "./RefreshTokens";
 
 @DefaultScope(() => ({
   attributes: { exclude: ["password"] },
@@ -145,4 +146,7 @@ export class User extends Model<User> {
 
   @HasMany(() => ResetPassword)
   resetPasswords!: ResetPassword[];
+
+  @HasMany(() => RefreshTokens)
+  refreshTokens!: RefreshTokens[];
 }

@@ -40,9 +40,12 @@ export const AuthController = {
   async loginUser(req: Request, res: Response) {
     try {
       const { email, password } = req.body;
-      const token = await authService.loginUser({ email, password });
-      console.log("token", token);
-      res.json({ success: true, token: token });
+      const resultToken = await authService.loginUser({ email, password });
+      res.json({
+        success: true,
+        accessToken: resultToken.accessToken,
+        refreshToken: resultToken.refreshToken,
+      });
     } catch (error) {
       res.status(500).json({ error: error });
     }
@@ -51,12 +54,16 @@ export const AuthController = {
   async registerUser(req: Request, res: Response) {
     try {
       const { email, name, password } = req.body;
-      const token = await authService.registerUser({
+      const resultToken = await authService.registerUser({
         email,
         name,
         password,
       } as any);
-      res.json({ success: true, token: token });
+      res.json({
+        success: true,
+        accessToken: resultToken.accessToken,
+        refreshToken: resultToken.refreshToken,
+      });
     } catch (error) {
       res.status(500).json({ error: error });
     }
@@ -66,8 +73,25 @@ export const AuthController = {
     try {
       const { token: tokenGoogle } = req.body;
 
-      const token = await authService.loginUserWithGoogle(tokenGoogle);
-      res.json({ success: true, token: token });
+      const resultToken = await authService.loginUserWithGoogle(tokenGoogle);
+
+      res.json({
+        success: true,
+        accessToken: resultToken.accessToken,
+        refreshToken: resultToken.refreshToken,
+      });
+    } catch (error) {
+      res.status(500).json({ error: error });
+    }
+  },
+
+  async refreshToken(req: Request, res: Response) {
+    try {
+      const { refreshToken } = req.body;
+
+      const token = await authService.refreshToken(refreshToken);
+      console.log("token", token);
+      res.json({ success: true, accessToken: token });
     } catch (error) {
       res.status(500).json({ error: error });
     }

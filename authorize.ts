@@ -12,7 +12,7 @@ export const authenticateToken = (req, res, next: NextFunction) => {
   if (token == null) return res.sendStatus(401); // Pas de token, non autorisé
 
   jwt.verify(token, process.env.JWT_SECRET, (err: Error, user: User) => {
-    if (err) return res.sendStatus(403); // Token non valide ou expiré
+    if (err) return res.sendStatus(401); // Token non valide ou expiré
 
     req.user = user;
     next(); // L'utilisateur est authentifié, continuer à la route suivante

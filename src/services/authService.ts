@@ -230,50 +230,15 @@ export const authService = {
   },
 
   async refreshToken(refreshTokenFromClient) {
-    try {
-      if (!refreshTokenFromClient) {
-        return null;
-      }
+    const token = await refreshToken(refreshTokenFromClient);
 
-      jwt.verify(
-        refreshTokenFromClient,
-        process.env.REFRESH_TOKEN_SECRET,
-        async (err, decoded) => {
-          if (err) {
-            return null;
-          }
-
-          // Vérifier si le refreshToken est stocké dans la base de données
-          const storedToken = await RefreshTokens.findOne({
-            where: { token: refreshTokenFromClient },
-          });
-
-          if (!storedToken) {
-            return null;
-          }
-
-          // Trouver l'utilisateur associé au refreshToken
-          const user = await User.findByPk(decoded.userId);
-          if (!user) {
-            return null;
-          }
-
-          const token = generateAccessToken(user.dataValues);
-
-          console.log("tokenfbefezi", token);
-          return token;
-        }
-      );
-    } catch (error) {
-      console.error("Error in refreshToken function:", error);
-      return null;
-    }
+    return token;
   },
 };
 
 const generateAccessToken = (user) => {
   return jwt.sign({ userId: user.id }, process.env.ACCESS_TOKEN_SECRET, {
-    expiresIn: "15m",
+    expiresIn: "10s",
   });
 };
 
@@ -285,4 +250,46 @@ const generateRefreshToken = (user) => {
 
 const storeRefreshTokenInDB = async (userId, refreshToken) => {
   await RefreshTokens.create({ userId, token: refreshToken });
+};
+
+const refreshToken = async (refreshTokenFromClient) => {
+  return new Promise((resolve, reject) => {
+    try {
+      if (!refreshTokenFromClient) {
+        resolve(null);
+      }
+
+      jwt.verify(
+        refreshTokenFromClient,
+        process.env.REFRESH_TOKEN_SECRET,
+        async (err, decoded) => {
+          if (err) {
+            resolve(null);
+          }
+
+          // Vérifier si le refreshToken est stocké dans la base de données
+          const storedToken = await RefreshTokens.findOne({
+            where: { token: refreshTokenFromClient },
+          });
+
+          if (!storedToken) {
+            resolve(null);
+          }
+
+          // Trouver l'utilisateur associé au refreshToken
+          const user = await User.findByPk(decoded.userId);
+          if (!user) {
+            resolve(null);
+          }
+
+          const token = generateAccessToken(user.dataValues);
+
+          resolve(token);
+        }
+      );
+    } catch (error) {
+      console.error("Error in refreshToken function:", error);
+      reject(error);
+    }
+  });
 };

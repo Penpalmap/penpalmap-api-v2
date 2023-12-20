@@ -375,4 +375,39 @@ export const userService = {
 
     await user.save();
   },
+
+  async updateUserPassword(
+    oldPassword: string,
+    newPassword: string,
+    id: string
+  ): Promise<void> {
+    const salt = await bcrypt.genSalt(10);
+
+    const user = await User.scope("withPassword").findOne({
+      where: {
+        id: id,
+      },
+    });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
+
+    if (!isPasswordValid) {
+      throw new Error("Password is not valid");
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    await User.update(
+      { password: hashedPassword },
+      {
+        where: {
+          id: id,
+        },
+      }
+    );
+  },
 };

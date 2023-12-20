@@ -238,7 +238,7 @@ export const authService = {
 
 const generateAccessToken = (user) => {
   return jwt.sign({ userId: user.id }, process.env.ACCESS_TOKEN_SECRET, {
-    expiresIn: "10s",
+    expiresIn: "1h",
   });
 };
 

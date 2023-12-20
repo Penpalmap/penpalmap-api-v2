@@ -133,4 +133,15 @@ export const UserController = {
       res.status(500).json({ error: error });
     }
   },
+
+  async updateUserPassword(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { oldPassword, newPassword } = req.body;
+      await userService.updateUserPassword(oldPassword, newPassword, id);
+      res.json({ message: "Password updated successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Error colin" });
+    }
+  },
 };

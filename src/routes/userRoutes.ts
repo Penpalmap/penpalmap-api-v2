@@ -40,4 +40,6 @@ router.delete(
 
 router.put("/:id/profile/reorder", UserController.reorderUserProfileImages);
 
+router.put("/:id/password", UserController.updateUserPassword);
+
 export default router;

@@ -3,6 +3,7 @@ import { Room } from "../../sequelize/models/Room";
 import { User } from "../../sequelize/models/User";
 import { Op, Sequelize } from "sequelize";
 import { UserRoom } from "../../sequelize/models/UserRoom";
+import sequelize from "../../sequelize/sequelize";
 
 export const roomService = {
   // Get all rooms
@@ -12,7 +13,41 @@ export const roomService = {
 
   // Get room by id
   async getRoomById(id: string): Promise<Room | null> {
-    return await Room.findByPk(id);
+    try {
+      const room = await Room.findOne({
+        where: {
+          id: id,
+        },
+        include: [
+          {
+            model: User,
+            as: "members",
+          },
+          {
+            model: Message,
+            as: "messages",
+
+            order: [["createdAt", "DESC"]],
+            limit: 1,
+          },
+        ],
+        // attributes: {
+        //   include: [
+        //     [
+        //       sequelize.literal(
+        //         `(SELECT COUNT(*) FROM "Messages" WHERE "Messages"."roomId" = "rooms"."id" AND "Messages"."isSeen" = false AND "Messages"."senderId" != '${id}')`
+        //       ),
+        //       "countUnreadMessages",
+        //     ],
+        //   ],
+        // },
+      });
+      console.log("room", room);
+
+      return room;
+    } catch (error) {
+      console.log("error", error);
+    }
   },
 
   // Create room

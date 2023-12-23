@@ -2,6 +2,7 @@ import { Server } from "http";
 import { Server as SocketServer, Socket } from "socket.io";
 import { onlineUsers } from "./globals";
 import { userService } from "./src/services/userService";
+import { Room } from "./sequelize/models/Room";
 
 const createSocketServer = (server: Server) => {
   const TYPING_MESSAGE_EVENT = "IS_TYPING";
@@ -13,6 +14,8 @@ const createSocketServer = (server: Server) => {
   const SEND_SEEN_MESSAGE = "SEND_SEEN_MESSAGE";
   const ADD_USER = "ADD_USER";
   const ONLINE_USERS = "ONLINE_USERS";
+  const CREATE_ROOM = "CREATE_ROOM";
+  const NEW_ROOM = "NEW_ROOM";
 
   const io = new SocketServer(server, {
     pingTimeout: 60000,
@@ -31,6 +34,17 @@ const createSocketServer = (server: Server) => {
 
     socket.on(JOIN_ROOM_EVENT, (roomId: string) => {
       socket.join(roomId);
+    });
+
+    socket.on(CREATE_ROOM, (data: any) => {
+      console.log("createdRoom", data);
+
+      console.log(onlineUsers);
+      const receiverSocketId = onlineUsers.get(data.receiverId);
+      if (receiverSocketId) {
+        console.log("test", receiverSocketId);
+        socket.to(receiverSocketId).emit(NEW_ROOM, data.roomId);
+      }
     });
 
     socket.on(LEAVE_ROOM_EVENT, (roomId: string) => {

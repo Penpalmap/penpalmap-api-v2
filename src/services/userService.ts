@@ -222,7 +222,7 @@ export const userService = {
 
   async getUserProfile(id: string): Promise<User | null> {
     return await User.findByPk(id, {
-      include: ["userImages"],
+      include: ["userImages", "userLanguages"],
     });
   },
 

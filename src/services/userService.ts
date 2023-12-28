@@ -198,26 +198,49 @@ export const userService = {
   },
 
   async getUsersInMap(): Promise<User[]> {
-    return await User.findAll({
-      attributes: [
-        "id",
-        "name",
-        "image",
-        "points",
-        "avatarNumber",
-        "gender",
-        [
-          sequelize.literal(`
+    try {
+      const now = Date.now();
+
+      const ONE_DAY = 24 * 60 * 60 * 1000; // Nombre de millisecondes en un jour
+      const MAX_DAYS = 365; // Nombre de jours après lesquels le score se stabilise près de la valeur minimale (à ajuster selon les besoins)
+
+      const users = await User.findAll({
+        attributes: [
+          "id",
+          "name",
+          "image",
+          "avatarNumber",
+          "gender",
+          "updatedAt",
+          [
+            sequelize.literal(`
           ST_Point(
             ST_X(geom) + (RANDOM() * 0.01 - 0.05),
             ST_Y(geom) + (RANDOM() * 0.01 - 0.05)
           )
           `),
-          "geomR",
+            "geomR",
+          ],
         ],
-      ],
-      include: ["userImages"],
-    });
+        include: ["userImages"],
+      });
+
+      users.forEach((user) => {
+        console.log("user", user);
+        const updateTimestamp = user.dataValues.updatedAt.getTime();
+        const daysSinceUpdate = (now - updateTimestamp) / ONE_DAY;
+
+        const score = 100 * Math.exp(-daysSinceUpdate / MAX_DAYS);
+        const finalScore = Math.max(1, Math.min(Math.round(score), 100));
+
+        user.dataValues.points = finalScore;
+      });
+
+      console.log("users", users);
+      return users;
+    } catch (error) {
+      console.log(error);
+    }
   },
 
   async getUserProfile(id: string): Promise<User | null> {

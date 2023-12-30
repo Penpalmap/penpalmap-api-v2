@@ -1,0 +1,15 @@
+version: "3.8"
+
+volumes:
+  postgresql-data: {}
+
+services:
+  postgresql:
+    build: ./docker/postgresql
+    environment:
+      POSTGRESQL_PASSWORD: secret
+    ports:
+      - 5432:5432
+    volumes:
+      - postgresql-data:/bitnami/postgresql
+      - ./docker/postgresql/scripts:/docker-entrypoint-initdb.d

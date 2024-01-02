@@ -1,4 +1,4 @@
-# README.md for penpalmap-api-v2
+# Penpalmap-api-v2
 
 ## About penpalmap-api-v2
 

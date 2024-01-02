@@ -3,6 +3,13 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    # Inputs for the workflow_dispatch event
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: true
+        default: 'main'
 env:
   REGISTRY: ghcr.io
 jobs:

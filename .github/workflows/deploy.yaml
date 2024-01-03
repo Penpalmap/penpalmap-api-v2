@@ -30,4 +30,4 @@ jobs:
             docker pull ghcr.io/penpalmap/penpalmap-api-v2:latest
             docker stop penpalmap-api-v2
             docker rm penpalmap-api-v2
-            docker run -d --name penpalmap-api-v2 -p 5000:5000 ghcr.io/penpalmap/penpalmap-api-v2:latest
+            docker run -d --name penpalmap-api-v2 --env-file .env-back -p 5000:5000 ghcr.io/penpalmap/penpalmap-api-v2:latest

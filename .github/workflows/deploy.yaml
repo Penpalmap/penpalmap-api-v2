@@ -28,6 +28,6 @@ jobs:
             cd /penpalmap-api
             docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
             docker pull ghcr.io/penpalmap/penpalmap-api-v2:latest
-            docker stop penpalmap-api-v2
-            docker rm penpalmap-api-v2
+            docker stop penpalmap-api-v2 || true
+            docker rm penpalmap-api-v2 || true
             docker run -d --name penpalmap-api-v2 -p 5000:5000 ghcr.io/penpalmap/penpalmap-api-v2:latest

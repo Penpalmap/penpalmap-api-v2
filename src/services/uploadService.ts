@@ -1,3 +1,4 @@
+import fs from "fs";
 import path from "path";
 import sharp from "sharp";
 import { UserImages } from "../../sequelize/models/UserImages";
@@ -7,30 +8,38 @@ import { User } from "../../sequelize/models/User";
 export const UploadService = {
   async uploadUserImage(input: UploadDataInput): Promise<UserImages> {
     try {
+      const mapDir = path.resolve(input.file.destination, "map");
+      const profilsDir = path.resolve(input.file.destination, "profils");
+
+      // Créer le dossier map s'il n'existe pas
+      if (!fs.existsSync(mapDir)) {
+        fs.mkdirSync(mapDir, { recursive: true });
+      }
+
+      // Créer le dossier profils s'il n'existe pas
+      if (!fs.existsSync(profilsDir)) {
+        fs.mkdirSync(profilsDir, { recursive: true });
+      }
+
       let imgProfileSrc =
         `${process.env.API_URL}/images/profils/` + input.file.filename;
       let imgMapSrc =
         `${process.env.API_URL}/images/map/` + input.file.filename;
 
       if (input.position == 0) {
-        // Resize picture for map
-
+        // Redimensionner l'image pour la carte
         await sharp(input.file.path)
           .resize(100, 100)
           .jpeg({ quality: 50 })
-          .toFile(
-            path.resolve(input.file.destination, "map", input.file.filename)
-          );
+          .toFile(path.join(mapDir, input.file.filename));
 
-        // Resize picture for profile
+        // Redimensionner l'image pour le profil
         await sharp(input.file.path)
           .resize(200, 200)
           .jpeg({ quality: 90 })
-          .toFile(
-            path.resolve(input.file.destination, "profils", input.file.filename)
-          );
+          .toFile(path.join(profilsDir, input.file.filename));
 
-        // Insert images in database
+        // Insérer les images dans la base de données
         const image = {
           src: imgProfileSrc,
           position: input.position,
@@ -40,23 +49,17 @@ export const UploadService = {
         const createImage = await UserImages.create(image as UserImages);
         await User.update(
           { image: imgMapSrc },
-          {
-            where: {
-              id: input.userId,
-            },
-          }
+          { where: { id: input.userId } }
         );
         return createImage;
       } else {
-        // Resize picture for profile
+        // Redimensionner l'image pour le profil
         await sharp(input.file.path)
           .resize(200, 200)
           .jpeg({ quality: 90 })
-          .toFile(
-            path.resolve(input.file.destination, "profils", input.file.filename)
-          );
+          .toFile(path.join(profilsDir, input.file.filename));
 
-        // Insert images in database
+        // Insérer les images dans la base de données
         const image = {
           src: imgProfileSrc,
           position: input.position,
@@ -69,6 +72,7 @@ export const UploadService = {
       }
     } catch (error) {
       console.log(error);
+      throw error; // Ajouté pour propager l'erreur
     }
   },
 };

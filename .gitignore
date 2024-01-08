@@ -27,7 +27,13 @@ devDependencies/
 .idea/
 .vs/
 
-/public/images/
+
+/public/images/map/*
+/public/images/profile/*
+
+# Ne pas ignorer les dossiers eux-mêmes
+!/public/images/map/.gitkeep
+!/public/images/profile/.gitkeep
 
 # Ajout des fichiers package.json et package-lock.json
 package-lock.json

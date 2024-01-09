@@ -144,4 +144,14 @@ export const UserController = {
       res.status(500).json({ error: "Error colin" });
     }
   },
+  async updateBio(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { description } = req.body;
+      await userService.updateBio(description, id);
+      res.json({ message: "Description updated successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Error colin" });
+    }
+  },
 };

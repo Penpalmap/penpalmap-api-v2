@@ -42,4 +42,6 @@ router.put("/:id/profile/reorder", UserController.reorderUserProfileImages);
 
 router.put("/:id/password", UserController.updateUserPassword);
 
+router.put("/:id/bio", UserController.updateBio);
+
 export default router;

@@ -282,7 +282,7 @@ const refreshToken = async (refreshTokenFromClient) => {
             resolve(null);
           }
 
-          const token = generateAccessToken(user.dataValues);
+          const token = generateAccessToken(user?.dataValues);
 
           resolve(token);
         }

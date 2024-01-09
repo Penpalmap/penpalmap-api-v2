@@ -433,4 +433,15 @@ export const userService = {
       }
     );
   },
+
+  async updateBio(description: string, id: string): Promise<void> {
+    await User.update(
+      { bio: description },
+      {
+        where: {
+          id: id,
+        },
+      }
+    );
+  },
 };

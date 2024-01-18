@@ -37,12 +37,9 @@ const createSocketServer = (server: Server) => {
     });
 
     socket.on(CREATE_ROOM, (data: any) => {
-      console.log("createdRoom", data);
-
-      console.log(onlineUsers);
       const receiverSocketId = onlineUsers.get(data.receiverId);
       if (receiverSocketId) {
-        console.log("test", receiverSocketId);
+        console.log("SEEEEEEEEEEEEEEEEEEEEEEND");
         socket.to(receiverSocketId).emit(NEW_ROOM, data.roomId);
       }
     });
@@ -59,16 +56,13 @@ const createSocketServer = (server: Server) => {
     });
 
     socket.on(SEND_SEEN_MESSAGE, (data: any) => {
-      console.log("SEND_SEEN_MESSAGE", data);
       const senderIdSocket = onlineUsers.get(data.senderId);
       if (senderIdSocket) {
-        console.log("receiverSocketId", senderIdSocket);
         socket.to(senderIdSocket).emit(SEEN_MESSAGE, data);
       }
     });
 
     socket.on("disconnect", () => {
-      console.log("user disconnected");
       onlineUsers.forEach((value, key) => {
         if (value === socket.id) {
           onlineUsers.delete(key);
@@ -78,10 +72,8 @@ const createSocketServer = (server: Server) => {
     });
 
     socket.on(TYPING_MESSAGE_EVENT, (message: any) => {
-      console.log("TYPING_MESSAGE_EVENT", message);
       const receiverSocketId = onlineUsers.get(message.receiverId);
       if (receiverSocketId) {
-        console.log("receiverSocketId", receiverSocketId);
         socket.to(receiverSocketId).emit(TYPING_MESSAGE_EVENT, message);
       }
     });

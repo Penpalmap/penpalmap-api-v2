@@ -90,7 +90,6 @@ export const AuthController = {
       const { refreshToken } = req.body;
 
       const token = await authService.refreshToken(refreshToken);
-      console.log("token", token);
       res.json({ success: true, accessToken: token });
     } catch (error) {
       res.status(500).json({ error: error });

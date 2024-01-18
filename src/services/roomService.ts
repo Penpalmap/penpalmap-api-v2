@@ -42,8 +42,6 @@ export const roomService = {
         //   ],
         // },
       });
-      console.log("room", room);
-
       return room;
     } catch (error) {
       console.log("error", error);
@@ -121,7 +119,6 @@ export const roomService = {
     offset: string = "0",
     sort: string = "desc"
   ): Promise<Message[]> {
-    console.log("limit", limit);
     return await Message.findAll({
       where: {
         roomId: roomId,

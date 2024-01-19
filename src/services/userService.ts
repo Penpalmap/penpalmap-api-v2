@@ -210,6 +210,7 @@ export const userService = {
           "name",
           "image",
           "avatarNumber",
+          "birthday",
           "gender",
           "updatedAt",
           [

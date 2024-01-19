@@ -213,6 +213,7 @@ export const userService = {
           "birthday",
           "gender",
           "updatedAt",
+          "bio",
           [
             sequelize.literal(`
           ST_Point(
@@ -227,7 +228,6 @@ export const userService = {
       });
 
       users.forEach((user) => {
-        console.log("user", user);
         const updateTimestamp = user.dataValues.updatedAt.getTime();
         const daysSinceUpdate = (now - updateTimestamp) / ONE_DAY;
 
@@ -237,7 +237,6 @@ export const userService = {
         user.dataValues.points = finalScore;
       });
 
-      console.log("users", users);
       return users;
     } catch (error) {
       console.log(error);

@@ -1,47 +1,50 @@
-import { Router } from "express";
-import { UserController } from "./user.controller";
-import { upload } from "../uploadConfig";
+import { Router } from 'express';
+import { UserController } from './user.controller';
+import { upload } from '../uploadConfig';
 
 const router = Router();
 
 // GET /api/users
-router.get("/", UserController.getUsers);
+router.get('/', UserController.getUsers);
 
 // GET /api/users/:id
-router.get("/:id", UserController.getUserById);
+router.get('/:id', UserController.getUserById);
 
 // GET /api/users/:email
-router.get("/email/:email", UserController.getUserByEmail);
+router.get('/email/:email', UserController.getUserByEmail);
 
 // POST /api/users
-router.post("/", UserController.createUser);
+router.post('/', UserController.createUser);
 
 // PUT /api/users/:id
-router.put("/:id", UserController.updateUser);
+router.put('/:id', UserController.updateUser);
+
+// DELETE /api/users/:id
+router.delete('/:id', UserController.deleteUser);
 
 // GET /api/users/:id/rooms
-router.use("/:id/rooms", UserController.getUserRooms);
+router.use('/:id/rooms', UserController.getUserRooms);
 
 // GET /api/users/google/:googleId
-router.get("/googleId/:googleId", UserController.getUserByGoogleId);
+router.get('/googleId/:googleId', UserController.getUserByGoogleId);
 
 router.post(
-  "/:id/image",
-  upload.single("profileImage"),
+  '/:id/image',
+  upload.single('profileImage'),
   UserController.uploadUserImage
 );
 
-router.get("/:id/profile", UserController.getUserProfile);
+router.get('/:id/profile', UserController.getUserProfile);
 
 router.delete(
-  "/:id/profile/images/:position",
+  '/:id/profile/images/:position',
   UserController.deleteUserProfileImage
 );
 
-router.put("/:id/profile/reorder", UserController.reorderUserProfileImages);
+router.put('/:id/profile/reorder', UserController.reorderUserProfileImages);
 
-router.put("/:id/password", UserController.updateUserPassword);
+router.put('/:id/password', UserController.updateUserPassword);
 
-router.put("/:id/bio", UserController.updateBio);
+router.put('/:id/bio', UserController.updateBio);
 
 export default router;

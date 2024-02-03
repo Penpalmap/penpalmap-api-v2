@@ -12,4 +12,5 @@ export type UserInput = {
   createdAt: Date;
   updatedAt: Date;
   userLanguages: any;
+  bio: string;
 };

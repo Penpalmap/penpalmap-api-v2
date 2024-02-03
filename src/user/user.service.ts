@@ -106,6 +106,17 @@ export const userService = {
       if (userLanguages && userLanguages.length > 0) {
         await UserLanguage.bulkCreate(userLanguages);
       }
+
+      if (user.bio) {
+        await User.update(
+          { bio: user.bio },
+          {
+            where: {
+              id: id,
+            },
+          }
+        );
+      }
     } catch (error) {
       console.log(error);
     }
@@ -459,17 +470,6 @@ export const userService = {
 
     await User.update(
       { password: hashedPassword },
-      {
-        where: {
-          id: id,
-        },
-      }
-    );
-  },
-
-  async updateBio(description: string, id: string): Promise<void> {
-    await User.update(
-      { bio: description },
       {
         where: {
           id: id,

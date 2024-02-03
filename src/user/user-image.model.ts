@@ -13,7 +13,7 @@ import User from "./user.model";
   attributes: { exclude: ["createdAt", "updatedAt"] },
 }))
 @Table
-export default class UserImages extends Model<UserImages> {
+export default class UserImage extends Model<UserImage> {
   @Column({
     type: DataType.STRING,
     allowNull: false,

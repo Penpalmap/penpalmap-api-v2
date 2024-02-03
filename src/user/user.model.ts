@@ -10,7 +10,7 @@ import {
   Scopes,
   Unique,
 } from "sequelize-typescript";
-import UserImages from "./user-images.model";
+import UserImage from "./user-image.model";
 import Room from "../room/room.model";
 import UserRoom from "../room/user-room.model";
 import Message from "../message/message.model";
@@ -78,7 +78,7 @@ export default class User extends Model<User> {
   })
   declare points: number;
 
-  // Next auth model
+  // TODO: rename this field to mapImage
   @Column({
     type: DataType.STRING,
     allowNull: true,
@@ -129,8 +129,9 @@ export default class User extends Model<User> {
   })
   declare avatarNumber: number;
 
-  @HasMany(() => UserImages)
-  userImages!: UserImages[];
+  // TODO: rename this field to profileImages
+  @HasMany(() => UserImage)
+  userImages!: UserImage[];
 
   @BelongsToMany(() => Room, () => UserRoom)
   rooms!: Room[];

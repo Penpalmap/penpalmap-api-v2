@@ -1,6 +1,6 @@
-import { Request, Response } from 'express';
-import { userService } from './user.service';
-import { UploadService } from '../upload/upload.service';
+import { Request, Response } from "express";
+import { userService } from "./user.service";
+import { UploadService } from "../upload/upload.service";
 
 export const UserController = {
   // Get all users
@@ -61,7 +61,7 @@ export const UserController = {
   async updateUser(req: Request, res: Response): Promise<void> {
     try {
       await userService.updateUser(req.params.id, req.body);
-      res.json({ message: 'User updated successfully' });
+      res.json({ message: "User updated successfully" });
     } catch (error) {
       res.status(500).json({ error: error });
     }
@@ -71,7 +71,7 @@ export const UserController = {
   async deleteUser(req: Request, res: Response): Promise<void> {
     try {
       await userService.deleteUser(req.params.id);
-      res.json({ message: 'User deleted successfully' });
+      res.json({ message: "User deleted successfully" });
     } catch (error) {
       res.status(500).json({ error: error });
     }
@@ -87,21 +87,19 @@ export const UserController = {
     }
   },
 
-  async uploadUserImage(req: Request, res: Response): Promise<void> {
+  async uploadUserImage(
+    req: Request<{ id: string }, never, { position: number }, never>,
+    res: Response
+  ): Promise<void> {
     try {
       const { position } = req.body;
       const file = req.file;
       const userId = req.params.id;
 
-      const image = await UploadService.uploadUserImage({
-        userId,
-        position,
-        file,
-      });
-
+      const image = await userService.uploadUserImage(userId, position, file);
       res.json(image);
     } catch (error) {
-      res.status(500).json({ error: error });
+      res.status(500).json({ error });
     }
   },
 
@@ -146,9 +144,9 @@ export const UserController = {
       const { id } = req.params;
       const { oldPassword, newPassword } = req.body;
       await userService.updateUserPassword(oldPassword, newPassword, id);
-      res.json({ message: 'Password updated successfully' });
+      res.json({ message: "Password updated successfully" });
     } catch (error) {
-      res.status(500).json({ error: 'Error colin' });
+      res.status(500).json({ error: "Error colin" });
     }
   },
 };

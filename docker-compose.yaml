@@ -2,6 +2,7 @@ version: "3.8"
 
 volumes:
   postgresql-data: {}
+  minio-data: {}
 
 services:
   postgresql:
@@ -13,3 +14,14 @@ services:
     volumes:
       - postgresql-data:/bitnami/postgresql
       - ./docker/postgresql/scripts:/docker-entrypoint-initdb.d
+
+  minio:
+    image: bitnami/minio:2024.1.18
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: miniosecret
+    ports:
+      - 9000:9000
+      - 9001:9001
+    volumes:
+      - minio-data:/bitnami/minio/data

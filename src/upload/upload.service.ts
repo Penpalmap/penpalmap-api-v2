@@ -1,78 +1,108 @@
-import fs from "fs";
-import path from "path";
-import sharp from "sharp";
-import UserImages from "../user/user-images.model";
-import { UploadDataInput } from "./upload-data-input.dto";
-import User from "../user/user.model";
+import { Client } from "minio";
 
-export const UploadService = {
-  async uploadUserImage(input: UploadDataInput): Promise<UserImages> {
+export class UploadService {
+  private minioClient: Client;
+  private static instance: UploadService;
+
+  private constructor() {
+    this.minioClient = new Client({
+      endPoint: process.env.MINIO_HOST || "localhost",
+      port: Number(process.env.MINIO_PORT) || 9000,
+      accessKey: process.env.MINIO_USER || "minio",
+      secretKey: process.env.MINIO_PASSWORD || "secret",
+      useSSL: false,
+    });
+  }
+
+  public static async connect(): Promise<void> {
     try {
-      const mapDir = path.resolve(input.file.destination, "map");
-      const profilsDir = path.resolve(input.file.destination, "profils");
-
-      // Créer le dossier map s'il n'existe pas
-      if (!fs.existsSync(mapDir)) {
-        fs.mkdirSync(mapDir, { recursive: true });
-      }
-
-      // Créer le dossier profils s'il n'existe pas
-      if (!fs.existsSync(profilsDir)) {
-        fs.mkdirSync(profilsDir, { recursive: true });
-      }
-
-      let imgProfileSrc =
-        `${process.env.API_URL}/images/profils/` + input.file.filename;
-      let imgMapSrc =
-        `${process.env.API_URL}/images/map/` + input.file.filename;
-
-      if (input.position == 0) {
-        // Redimensionner l'image pour la carte
-        await sharp(input.file.path)
-          .resize(100, 100)
-          .jpeg({ quality: 50 })
-          .toFile(path.join(mapDir, input.file.filename));
-
-        // Redimensionner l'image pour le profil
-        await sharp(input.file.path)
-          .resize(200, 200)
-          .jpeg({ quality: 90 })
-          .toFile(path.join(profilsDir, input.file.filename));
-
-        // Insérer les images dans la base de données
-        const image = {
-          src: imgProfileSrc,
-          position: input.position,
-          userId: input.userId,
-        };
-
-        const createImage = await UserImages.create(image as UserImages);
-        await User.update(
-          { image: imgMapSrc },
-          { where: { id: input.userId } }
-        );
-        return createImage;
-      } else {
-        // Redimensionner l'image pour le profil
-        await sharp(input.file.path)
-          .resize(200, 200)
-          .jpeg({ quality: 90 })
-          .toFile(path.join(profilsDir, input.file.filename));
-
-        // Insérer les images dans la base de données
-        const image = {
-          src: imgProfileSrc,
-          position: input.position,
-          userId: input.userId,
-        };
-
-        const createImage = await UserImages.create(image as UserImages);
-
-        return createImage;
-      }
+      await new Promise((resolve, reject) => {
+        try {
+          UploadService.getInstance();
+          resolve(undefined);
+        } catch (error) {
+          reject(new Error(error));
+        }
+      });
+      console.log("MinIO connected");
     } catch (error) {
-      console.log(error);
-      throw error; // Ajouté pour propager l'erreur
+      console.error("Error connecting to MinIO:", error);
     }
-  },
-};
+  }
+
+  public static getInstance(): UploadService {
+    if (!UploadService.instance) {
+      UploadService.instance = new UploadService();
+    }
+
+    return UploadService.instance;
+  }
+
+  public async createBucket(bucketName: string): Promise<void> {
+    await this.minioClient.makeBucket(bucketName, "us-east-1");
+  }
+
+  public async bucketExists(bucketName: string): Promise<boolean> {
+    return await this.minioClient.bucketExists(bucketName);
+  }
+
+  public async deleteBucket(bucketName: string): Promise<void> {
+    await this.minioClient.removeBucket(bucketName);
+  }
+
+  public async setBucketPublicAccess(
+    bucketName: string,
+    publicAccess: boolean
+  ): Promise<void> {
+    const policy = JSON.stringify({
+      Version: "2012-10-17",
+      Statement: [
+        {
+          Action: ["s3:GetObject"],
+          Effect: "Allow",
+          Principal: "*",
+          Resource: `arn:aws:s3:::${bucketName}/*`,
+        },
+      ],
+    });
+    await this.minioClient.setBucketPolicy(
+      bucketName,
+      publicAccess ? policy : ""
+    );
+  }
+
+  public async saveFile(
+    bucketName: string,
+    fileName: string,
+    file: Express.Multer.File | Buffer
+  ): Promise<void> {
+    if (file instanceof Buffer) {
+      await this.minioClient.putObject(bucketName, fileName, file);
+    } else {
+      await this.minioClient.putObject(bucketName, fileName, file.buffer);
+    }
+  }
+
+  public async getFile(bucketName: string, fileName: string): Promise<Buffer> {
+    const dataStream = await this.minioClient.getObject(bucketName, fileName);
+    const file = await new Promise<Buffer>((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      dataStream.on("data", (chunk) => chunks.push(chunk));
+      dataStream.on("end", () => resolve(Buffer.concat(chunks)));
+      dataStream.on("error", (err) => reject(err));
+    });
+    return file;
+  }
+
+  public async fileExists(
+    bucketName: string,
+    fileName: string
+  ): Promise<boolean> {
+    const objectStat = await this.minioClient.statObject(bucketName, fileName);
+    return !!objectStat;
+  }
+
+  public async deleteFile(bucketName: string, fileName: string): Promise<void> {
+    await this.minioClient.removeObject(bucketName, fileName);
+  }
+}

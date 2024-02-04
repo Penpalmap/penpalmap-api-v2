@@ -1,13 +1,17 @@
-import Room from '../room/room.model';
-import User from './user.model';
-import bcrypt from 'bcrypt';
-import Message from '../message/message.model';
-import { onlineUsers } from '../globals';
-import UserImages from './user-images.model';
-import UserLanguage from './user-language.model';
-import { Sequelize } from 'sequelize';
-import { UserInput } from './user-input.dto';
-import UserRoom from '../room/user-room.model';
+import bcrypt from "bcrypt";
+import sharp from "sharp";
+import { v4 as uuid } from "uuid";
+import { Sequelize } from "sequelize";
+import Room from "../room/room.model";
+import User from "./user.model";
+import Message from "../message/message.model";
+import { onlineUsers } from "../globals";
+import UserImage from "./user-image.model";
+import UserLanguage from "./user-language.model";
+import { UserInput } from "./user-input.dto";
+import UserRoom from "../room/user-room.model";
+import { UploadService } from "../upload/upload.service";
+import { MemoryFile } from "../types";
 
 export const userService = {
   // Get all users
@@ -18,7 +22,7 @@ export const userService = {
   // Get user by id
   async getUserById(id: string): Promise<User | null> {
     return await User.findByPk(id, {
-      include: ['userImages'],
+      include: ["userImages"],
     });
   },
 
@@ -42,7 +46,7 @@ export const userService = {
         const userWithoutPassword = await User.findByPk(newUser.id);
 
         if (!userWithoutPassword) {
-          throw new Error('Error creating user');
+          throw new Error("Error creating user");
         }
 
         return userWithoutPassword;
@@ -55,7 +59,7 @@ export const userService = {
       });
 
       if (userExists) {
-        throw new Error('User already exists');
+        throw new Error("User already exists");
       }
 
       if (!user.googleId) {
@@ -70,7 +74,7 @@ export const userService = {
       const userWithoutPassword = await User.findByPk(newUser.id);
 
       if (!userWithoutPassword) {
-        throw new Error('Error creating user');
+        throw new Error("Error creating user");
       }
 
       return userWithoutPassword;
@@ -130,7 +134,7 @@ export const userService = {
       },
     });
 
-    await UserImages.destroy({
+    await UserImage.destroy({
       where: {
         userId: id,
       },
@@ -161,17 +165,17 @@ export const userService = {
         include: [
           {
             model: Room,
-            as: 'rooms',
+            as: "rooms",
             include: [
               {
                 model: User,
-                as: 'members',
+                as: "members",
               },
               {
                 model: Message,
-                as: 'messages',
+                as: "messages",
 
-                order: [['createdAt', 'DESC']],
+                order: [["createdAt", "DESC"]],
                 limit: 1,
               },
             ],
@@ -181,7 +185,7 @@ export const userService = {
                   Sequelize.literal(
                     `(SELECT COUNT(*) FROM "Messages" WHERE "Messages"."roomId" = "rooms"."id" AND "Messages"."isSeen" = false AND "Messages"."senderId" != '${id}')`
                   ),
-                  'countUnreadMessages',
+                  "countUnreadMessages",
                 ],
               ],
             },
@@ -227,7 +231,7 @@ export const userService = {
       where: {
         email: email,
       },
-      include: ['userImages'],
+      include: ["userImages"],
     });
   },
 
@@ -250,14 +254,14 @@ export const userService = {
 
       const users = await User.findAll({
         attributes: [
-          'id',
-          'name',
-          'image',
-          'avatarNumber',
-          'birthday',
-          'gender',
-          'updatedAt',
-          'bio',
+          "id",
+          "name",
+          "image",
+          "avatarNumber",
+          "birthday",
+          "gender",
+          "updatedAt",
+          "bio",
           [
             Sequelize.literal(`
           ST_Point(
@@ -265,10 +269,10 @@ export const userService = {
             ST_Y(geom) + (RANDOM() * 0.01 - 0.05)
           )
           `),
-            'geomR',
+            "geomR",
           ],
         ],
-        include: ['userImages'],
+        include: ["userImages"],
       });
 
       users.forEach((user) => {
@@ -289,32 +293,32 @@ export const userService = {
 
   async getUserProfile(id: string): Promise<User | null> {
     return await User.findByPk(id, {
-      include: ['userImages', 'userLanguages'],
+      include: ["userImages", "userLanguages"],
     });
   },
 
   async deleteUserProfileImage(id: string, position: number): Promise<void> {
     const user = await User.findByPk(id, {
-      include: ['userImages'],
+      include: ["userImages"],
     });
 
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     const userImages = user.dataValues.userImages;
-    console.log('userImages', userImages);
+    console.log("userImages", userImages);
     if (!userImages) {
-      throw new Error('User images not found');
+      throw new Error("User images not found");
     }
 
     const imageToDelete = userImages.find(
       (image) => image.position == position
     );
 
-    console.log('imageToDelete', imageToDelete);
+    console.log("imageToDelete", imageToDelete);
     if (!imageToDelete) {
-      throw new Error('Image not found');
+      throw new Error("Image not found");
     }
 
     await imageToDelete.destroy();
@@ -323,7 +327,7 @@ export const userService = {
       (image) => image.id !== imageToDelete.id
     );
 
-    console.log('newImages', newImages);
+    console.log("newImages", newImages);
 
     newImages.forEach(async (image, index) => {
       await image.update({
@@ -354,23 +358,23 @@ export const userService = {
 
   async updateUserProfileImage(id: string, position: number): Promise<void> {
     const user = await User.findByPk(id, {
-      include: ['userImages'],
+      include: ["userImages"],
     });
 
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     const userImages = user.dataValues.userImages;
 
     if (!userImages) {
-      throw new Error('User images not found');
+      throw new Error("User images not found");
     }
 
     const imageToSetAsProfile = userImages[position];
 
     if (!imageToSetAsProfile) {
-      throw new Error('Image not found');
+      throw new Error("Image not found");
     }
 
     await User.update(
@@ -383,41 +387,40 @@ export const userService = {
     );
   },
 
-  async reorderUserProfileImages(id: string, newImagesOrder: UserImages[]) {
+  async reorderUserProfileImages(id: string, newImagesOrder: UserImage[]) {
     const user = await User.findByPk(id, {
-      include: ['userImages'],
+      include: ["userImages"],
     });
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
-    const userImages = user.dataValues.userImages.sort((a, b) => {
-      return a.position - b.position;
-    });
+    const userImages = user.dataValues.userImages.sort(
+      (a, b) => a.position - b.position
+    );
 
     if (!userImages) {
-      throw new Error('User images not found');
+      throw new Error("User images not found");
     }
     const imagesIds = userImages.map((image) => image.id);
-
     const newImagesOrderIds = newImagesOrder.map((image) => image.id);
 
     if (imagesIds.length !== newImagesOrderIds.length) {
-      throw new Error('Images length is not the same');
+      throw new Error("Images length is not the same");
     }
     const isSameArray = imagesIds.every((id, index) => {
       return id === newImagesOrderIds[index];
     });
 
     if (isSameArray) {
-      throw new Error('Images order is the same');
+      throw new Error("Images order is the same");
     }
-    await UserImages.destroy({
+    await UserImage.destroy({
       where: {
         userId: id,
       },
     });
 
-    await UserImages.bulkCreate(newImagesOrder);
+    await UserImage.bulkCreate(newImagesOrder);
 
     await User.update(
       { image: newImagesOrder[0].src },
@@ -433,7 +436,7 @@ export const userService = {
     const user = await User.findByPk(id);
 
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     const newNbConnections = parseInt(user.connections) + 1;
@@ -450,20 +453,20 @@ export const userService = {
   ): Promise<void> {
     const salt = await bcrypt.genSalt(10);
 
-    const user = await User.scope('withPassword').findOne({
+    const user = await User.scope("withPassword").findOne({
       where: {
         id: id,
       },
     });
 
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
 
     if (!isPasswordValid) {
-      throw new Error('Password is not valid');
+      throw new Error("Password is not valid");
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, salt);
@@ -476,5 +479,71 @@ export const userService = {
         },
       }
     );
+  },
+
+  async uploadUserImage(
+    userId: string,
+    position: number,
+    file: MemoryFile
+  ): Promise<UserImage> {
+    const uploadService = UploadService.getInstance();
+    const mapBucketName = "map";
+    const profilsBucketName = "profils";
+
+    // Create map and profils buckets if they don't exist asynchronously
+    await Promise.all([
+      uploadService.bucketExists(mapBucketName).then(async (exists) => {
+        if (!exists) {
+          await uploadService.createBucket(mapBucketName);
+          await uploadService.setBucketPublicAccess(mapBucketName, true);
+        }
+      }),
+      uploadService.bucketExists(profilsBucketName).then(async (exists) => {
+        if (!exists) {
+          await uploadService.createBucket(profilsBucketName);
+          await uploadService.setBucketPublicAccess(profilsBucketName, true);
+        }
+      }),
+    ]);
+
+    const imageName = `${uuid()}.webp`;
+
+    // Save map image only if it's the first image
+    if (position == 0) {
+      const mapImage = await sharp(file.buffer)
+        .resize(100, 100)
+        .webp({ quality: 50 })
+        .toBuffer();
+      await uploadService.saveFile(mapBucketName, imageName, mapImage);
+      await User.update(
+        {
+          image: `${
+            process.env.MINIO_EXTERNAL_URL || "http://localhost:9000"
+          }/${mapBucketName}/${imageName}`,
+        },
+        {
+          where: {
+            id: userId,
+          },
+        }
+      );
+    }
+
+    // Save profils image
+    const profilsImage = await sharp(file.buffer)
+      .resize(200, 200)
+      .webp({ quality: 90 })
+      .toBuffer();
+    await uploadService.saveFile(profilsBucketName, imageName, profilsImage);
+
+    // Save image UUID in database and return image
+    const image = await UserImage.create({
+      src: `${
+        process.env.MINIO_EXTERNAL_URL || "http://localhost:9000"
+      }/${profilsBucketName}/${imageName}`,
+      position: position,
+      userId: userId,
+    });
+    return image;
   },
 };

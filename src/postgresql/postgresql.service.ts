@@ -1,4 +1,4 @@
-import { Sequelize } from 'sequelize-typescript';
+import { Sequelize } from "sequelize-typescript";
 
 export class PostgresqlService {
   private static instance: PostgresqlService;
@@ -9,24 +9,19 @@ export class PostgresqlService {
       database: process.env.DB_NAME,
       username: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
-      host: process.env.DB_HOST || 'localhost',
-      dialect: 'postgres',
-      storage: ':memory:',
-      models: [
-        __dirname +
-          `/../**/*.model.${
-            process.env.NODE_ENV === 'production' ? 'js' : 'ts'
-          }`,
-      ],
+      host: process.env.DB_HOST || "localhost",
+      dialect: "postgres",
+      models: [__dirname + "/../**/*.model.{ts,js}"],
+      logging: false,
     });
   }
 
   public static async connect(): Promise<void> {
     try {
       await PostgresqlService.getInstance().sequelize.sync();
-      console.log('Database synced');
+      console.log("Database synced");
     } catch (error) {
-      console.error('Error syncing database:', error);
+      console.error("Error syncing database:", error);
     }
   }
 

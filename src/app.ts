@@ -5,10 +5,12 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { PostgresqlService } from "./postgresql/postgresql.service";
 import { routerV1 } from "./routes";
+import { UploadService } from "./upload/upload.service";
 
 // Load environment variables and connect to the database
 dotenv.config();
 PostgresqlService.connect();
+UploadService.connect();
 
 const app = express();
 

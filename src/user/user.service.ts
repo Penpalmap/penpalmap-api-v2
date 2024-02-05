@@ -1,17 +1,18 @@
-import bcrypt from "bcrypt";
-import sharp from "sharp";
-import { v4 as uuid } from "uuid";
-import { Sequelize } from "sequelize";
-import Room from "../room/room.model";
-import User from "./user.model";
-import Message from "../message/message.model";
-import { onlineUsers } from "../globals";
-import UserImage from "./user-image.model";
-import UserLanguage from "./user-language.model";
-import { UserInput } from "./user-input.dto";
-import UserRoom from "../room/user-room.model";
-import { UploadService } from "../upload/upload.service";
-import { MemoryFile } from "../types";
+import bcrypt from 'bcrypt';
+import sharp from 'sharp';
+import { v4 as uuid } from 'uuid';
+import { Sequelize } from 'sequelize';
+import Room from '../room/room.model';
+import User from './user.model';
+import Message from '../message/message.model';
+import { onlineUsers } from '../globals';
+import UserImage from './user-image.model';
+import UserLanguage from './user-language.model';
+import { UserInput } from './user-input.dto';
+import UserRoom from '../room/user-room.model';
+import { UploadService } from '../upload/upload.service';
+import { MemoryFile } from '../types';
+import UserBlock from './user-block.model';
 
 export const userService = {
   // Get all users
@@ -22,7 +23,7 @@ export const userService = {
   // Get user by id
   async getUserById(id: string): Promise<User | null> {
     return await User.findByPk(id, {
-      include: ["userImages"],
+      include: ['userImages'],
     });
   },
 
@@ -46,7 +47,7 @@ export const userService = {
         const userWithoutPassword = await User.findByPk(newUser.id);
 
         if (!userWithoutPassword) {
-          throw new Error("Error creating user");
+          throw new Error('Error creating user');
         }
 
         return userWithoutPassword;
@@ -59,7 +60,7 @@ export const userService = {
       });
 
       if (userExists) {
-        throw new Error("User already exists");
+        throw new Error('User already exists');
       }
 
       if (!user.googleId) {
@@ -74,7 +75,7 @@ export const userService = {
       const userWithoutPassword = await User.findByPk(newUser.id);
 
       if (!userWithoutPassword) {
-        throw new Error("Error creating user");
+        throw new Error('Error creating user');
       }
 
       return userWithoutPassword;
@@ -165,17 +166,17 @@ export const userService = {
         include: [
           {
             model: Room,
-            as: "rooms",
+            as: 'rooms',
             include: [
               {
                 model: User,
-                as: "members",
+                as: 'members',
               },
               {
                 model: Message,
-                as: "messages",
+                as: 'messages',
 
-                order: [["createdAt", "DESC"]],
+                order: [['createdAt', 'DESC']],
                 limit: 1,
               },
             ],
@@ -185,7 +186,7 @@ export const userService = {
                   Sequelize.literal(
                     `(SELECT COUNT(*) FROM "Messages" WHERE "Messages"."roomId" = "rooms"."id" AND "Messages"."isSeen" = false AND "Messages"."senderId" != '${id}')`
                   ),
-                  "countUnreadMessages",
+                  'countUnreadMessages',
                 ],
               ],
             },
@@ -195,10 +196,27 @@ export const userService = {
 
       const rooms = user?.dataValues.rooms;
 
-      // add to members an attribute called isOnline and return the user with the updated rooms
-      const roomsWithMembers = rooms?.map((room: any) => {
+      const usersBlockedByUser = await UserBlock.findAll({
+        where: {
+          blockerUserId: id,
+        },
+      });
+
+      const filteredRoomsBlocked = rooms?.filter((room: any) => {
         const members = room.dataValues?.members;
 
+        const isBlocked = members?.some((member: any) => {
+          return usersBlockedByUser.some(
+            (user) => user.blockedUserId === member.id
+          );
+        });
+
+        return !isBlocked;
+      });
+
+      // add to members an attribute called isOnline and return the user with the updated rooms
+      const roomsWithMembers = filteredRoomsBlocked?.map((room: any) => {
+        const members = room.dataValues?.members;
         const membersWithIsOnline = members?.map((member: any) => {
           const socketId = onlineUsers.get(member.dataValues.id);
           if (socketId) {
@@ -231,7 +249,7 @@ export const userService = {
       where: {
         email: email,
       },
-      include: ["userImages"],
+      include: ['userImages'],
     });
   },
 
@@ -245,23 +263,23 @@ export const userService = {
     return user;
   },
 
-  async getUsersInMap(): Promise<User[]> {
+  async getUsersInMap(userId: string): Promise<User[]> {
     try {
       const now = Date.now();
 
       const ONE_DAY = 24 * 60 * 60 * 1000; // Nombre de millisecondes en un jour
       const MAX_DAYS = 365; // Nombre de jours après lesquels le score se stabilise près de la valeur minimale (à ajuster selon les besoins)
 
-      const users = await User.findAll({
+      let users = await User.findAll({
         attributes: [
-          "id",
-          "name",
-          "image",
-          "avatarNumber",
-          "birthday",
-          "gender",
-          "updatedAt",
-          "bio",
+          'id',
+          'name',
+          'image',
+          'avatarNumber',
+          'birthday',
+          'gender',
+          'updatedAt',
+          'bio',
           [
             Sequelize.literal(`
           ST_Point(
@@ -269,13 +287,27 @@ export const userService = {
             ST_Y(geom) + (RANDOM() * 0.01 - 0.05)
           )
           `),
-            "geomR",
+            'geomR',
           ],
         ],
-        include: ["userImages"],
+        include: ['userImages'],
       });
 
-      users.forEach((user) => {
+      const user = await User.findByPk(userId, {
+        include: ['blockedUsers'],
+      });
+
+      const filteredUserBlocked = users.filter((userMap) => {
+        const blockedUsers = user.dataValues.blockedUsers;
+        if (blockedUsers.length > 0) {
+          return !blockedUsers.some(
+            (block) => block.dataValues.blockedUserId === userMap.id
+          );
+        }
+        return true;
+      });
+
+      filteredUserBlocked.forEach((user) => {
         const updateTimestamp = user.dataValues.updatedAt.getTime();
         const daysSinceUpdate = (now - updateTimestamp) / ONE_DAY;
 
@@ -285,7 +317,7 @@ export const userService = {
         user.dataValues.points = finalScore;
       });
 
-      return users;
+      return filteredUserBlocked;
     } catch (error) {
       console.log(error);
     }
@@ -293,32 +325,32 @@ export const userService = {
 
   async getUserProfile(id: string): Promise<User | null> {
     return await User.findByPk(id, {
-      include: ["userImages", "userLanguages"],
+      include: ['userImages', 'userLanguages'],
     });
   },
 
   async deleteUserProfileImage(id: string, position: number): Promise<void> {
     const user = await User.findByPk(id, {
-      include: ["userImages"],
+      include: ['userImages'],
     });
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     const userImages = user.dataValues.userImages;
-    console.log("userImages", userImages);
+    console.log('userImages', userImages);
     if (!userImages) {
-      throw new Error("User images not found");
+      throw new Error('User images not found');
     }
 
     const imageToDelete = userImages.find(
       (image) => image.position == position
     );
 
-    console.log("imageToDelete", imageToDelete);
+    console.log('imageToDelete', imageToDelete);
     if (!imageToDelete) {
-      throw new Error("Image not found");
+      throw new Error('Image not found');
     }
 
     await imageToDelete.destroy();
@@ -327,7 +359,7 @@ export const userService = {
       (image) => image.id !== imageToDelete.id
     );
 
-    console.log("newImages", newImages);
+    console.log('newImages', newImages);
 
     newImages.forEach(async (image, index) => {
       await image.update({
@@ -358,23 +390,23 @@ export const userService = {
 
   async updateUserProfileImage(id: string, position: number): Promise<void> {
     const user = await User.findByPk(id, {
-      include: ["userImages"],
+      include: ['userImages'],
     });
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     const userImages = user.dataValues.userImages;
 
     if (!userImages) {
-      throw new Error("User images not found");
+      throw new Error('User images not found');
     }
 
     const imageToSetAsProfile = userImages[position];
 
     if (!imageToSetAsProfile) {
-      throw new Error("Image not found");
+      throw new Error('Image not found');
     }
 
     await User.update(
@@ -389,30 +421,30 @@ export const userService = {
 
   async reorderUserProfileImages(id: string, newImagesOrder: UserImage[]) {
     const user = await User.findByPk(id, {
-      include: ["userImages"],
+      include: ['userImages'],
     });
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
     const userImages = user.dataValues.userImages.sort(
       (a, b) => a.position - b.position
     );
 
     if (!userImages) {
-      throw new Error("User images not found");
+      throw new Error('User images not found');
     }
     const imagesIds = userImages.map((image) => image.id);
     const newImagesOrderIds = newImagesOrder.map((image) => image.id);
 
     if (imagesIds.length !== newImagesOrderIds.length) {
-      throw new Error("Images length is not the same");
+      throw new Error('Images length is not the same');
     }
     const isSameArray = imagesIds.every((id, index) => {
       return id === newImagesOrderIds[index];
     });
 
     if (isSameArray) {
-      throw new Error("Images order is the same");
+      throw new Error('Images order is the same');
     }
     await UserImage.destroy({
       where: {
@@ -436,7 +468,7 @@ export const userService = {
     const user = await User.findByPk(id);
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     const newNbConnections = parseInt(user.connections) + 1;
@@ -453,20 +485,20 @@ export const userService = {
   ): Promise<void> {
     const salt = await bcrypt.genSalt(10);
 
-    const user = await User.scope("withPassword").findOne({
+    const user = await User.scope('withPassword').findOne({
       where: {
         id: id,
       },
     });
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
 
     if (!isPasswordValid) {
-      throw new Error("Password is not valid");
+      throw new Error('Password is not valid');
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, salt);
@@ -487,8 +519,8 @@ export const userService = {
     file: MemoryFile
   ): Promise<UserImage> {
     const uploadService = UploadService.getInstance();
-    const mapBucketName = "map";
-    const profilsBucketName = "profils";
+    const mapBucketName = 'map';
+    const profilsBucketName = 'profils';
 
     // Create map and profils buckets if they don't exist asynchronously
     await Promise.all([
@@ -518,7 +550,7 @@ export const userService = {
       await User.update(
         {
           image: `${
-            process.env.MINIO_EXTERNAL_URL || "http://localhost:9000"
+            process.env.MINIO_EXTERNAL_URL || 'http://localhost:9000'
           }/${mapBucketName}/${imageName}`,
         },
         {
@@ -539,11 +571,57 @@ export const userService = {
     // Save image UUID in database and return image
     const image = await UserImage.create({
       src: `${
-        process.env.MINIO_EXTERNAL_URL || "http://localhost:9000"
+        process.env.MINIO_EXTERNAL_URL || 'http://localhost:9000'
       }/${profilsBucketName}/${imageName}`,
       position: position,
       userId: userId,
     });
     return image;
+  },
+
+  async blockUser(userId: string, blockUserId: string): Promise<void> {
+    if (userId === blockUserId) {
+      throw new Error('You cannot block yourself');
+    }
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const blockUser = await User.findByPk(blockUserId);
+    if (!blockUser) {
+      throw new Error('Block user not found');
+    }
+
+    await UserBlock.create({
+      blockedUserId: blockUserId,
+      blockerUserId: userId,
+    });
+  },
+
+  async unblockUser(userId: string, blockUserId: string): Promise<void> {
+    await UserBlock.destroy({
+      where: {
+        blockedUserId: blockUserId,
+        blockerUserId: userId,
+      },
+    });
+  },
+
+  async getBlockedUsers(userId: string): Promise<User[]> {
+    const blockedUsers = await UserBlock.findAll({
+      where: {
+        blockerUserId: userId,
+      },
+      include: [
+        {
+          model: User,
+          as: 'blockedUser',
+        },
+      ],
+    });
+
+    return blockedUsers.map((block) => block.dataValues.blockedUser);
   },
 };

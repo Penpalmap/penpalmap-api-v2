@@ -1,6 +1,6 @@
-import { Request, Response } from "express";
-import { userService } from "./user.service";
-import { UploadService } from "../upload/upload.service";
+import { Request, Response } from 'express';
+import { userService } from './user.service';
+import { UploadService } from '../upload/upload.service';
 
 export const UserController = {
   // Get all users
@@ -61,7 +61,7 @@ export const UserController = {
   async updateUser(req: Request, res: Response): Promise<void> {
     try {
       await userService.updateUser(req.params.id, req.body);
-      res.json({ message: "User updated successfully" });
+      res.json({ message: 'User updated successfully' });
     } catch (error) {
       res.status(500).json({ error: error });
     }
@@ -71,7 +71,7 @@ export const UserController = {
   async deleteUser(req: Request, res: Response): Promise<void> {
     try {
       await userService.deleteUser(req.params.id);
-      res.json({ message: "User deleted successfully" });
+      res.json({ message: 'User deleted successfully' });
     } catch (error) {
       res.status(500).json({ error: error });
     }
@@ -144,9 +144,38 @@ export const UserController = {
       const { id } = req.params;
       const { oldPassword, newPassword } = req.body;
       await userService.updateUserPassword(oldPassword, newPassword, id);
-      res.json({ message: "Password updated successfully" });
+      res.json({ message: 'Password updated successfully' });
     } catch (error) {
-      res.status(500).json({ error: "Error colin" });
+      res.status(500).json({ error: 'Error colin' });
+    }
+  },
+
+  async blockUser(req: Request, res: Response): Promise<void> {
+    try {
+      const { id, blockUserId } = req.params;
+      await userService.blockUser(id, blockUserId);
+      res.json({ message: 'User blocked successfully' });
+    } catch (error) {
+      res.status(500).json({ error: error });
+    }
+  },
+
+  async unblockUser(req: Request, res: Response): Promise<void> {
+    try {
+      const { id, blockUserId } = req.params;
+      await userService.unblockUser(id, blockUserId);
+      res.json({ message: 'User unblocked successfully' });
+    } catch (error) {
+      res.status(500).json({ error: error });
+    }
+  },
+
+  async getBlockedUsers(req: Request, res: Response): Promise<void> {
+    try {
+      const users = await userService.getBlockedUsers(req.params.id);
+      res.json(users);
+    } catch (error) {
+      res.status(500).json({ error: error });
     }
   },
 };

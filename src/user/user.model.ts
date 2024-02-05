@@ -9,18 +9,19 @@ import {
   DefaultScope,
   Scopes,
   Unique,
-} from "sequelize-typescript";
-import UserImage from "./user-image.model";
-import Room from "../room/room.model";
-import UserRoom from "../room/user-room.model";
-import Message from "../message/message.model";
-import UserLanguage from "./user-language.model";
-import Sequelize from "sequelize/types/sequelize";
-import ResetPassword from "../auth/reset-password.model";
-import RefreshTokens from "../auth/refresh-tokens.model";
+} from 'sequelize-typescript';
+import UserImage from './user-image.model';
+import Room from '../room/room.model';
+import UserRoom from '../room/user-room.model';
+import Message from '../message/message.model';
+import UserLanguage from './user-language.model';
+import Sequelize from 'sequelize/types/sequelize';
+import ResetPassword from '../auth/reset-password.model';
+import RefreshTokens from '../auth/refresh-tokens.model';
+import UserBlock from './user-block.model';
 
 @DefaultScope(() => ({
-  attributes: { exclude: ["password"] },
+  attributes: { exclude: ['password'] },
 }))
 @Scopes(() => ({
   withPassword: {
@@ -66,10 +67,10 @@ export default class User extends Model<User> {
   declare googleId: string;
 
   @Column({
-    type: DataType.GEOMETRY("POINT", 4326),
+    type: DataType.GEOMETRY('POINT', 4326),
     allowNull: true,
   })
-  declare geom: Sequelize["literal"];
+  declare geom: Sequelize['literal'];
 
   @Column({
     type: DataType.BIGINT,
@@ -132,6 +133,9 @@ export default class User extends Model<User> {
   // TODO: rename this field to profileImages
   @HasMany(() => UserImage)
   userImages!: UserImage[];
+
+  @HasMany(() => UserBlock, 'blockerUserId')
+  blockedUsers!: UserBlock[];
 
   @BelongsToMany(() => Room, () => UserRoom)
   rooms!: Room[];

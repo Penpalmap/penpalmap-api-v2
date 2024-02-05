@@ -45,4 +45,12 @@ router.put('/:id/profile/reorder', UserController.reorderUserProfileImages);
 
 router.put('/:id/password', UserController.updateUserPassword);
 
+// POST /api/users/:id/block/:blockUserId
+router.post('/:id/block/:blockUserId', UserController.blockUser);
+
+// POST /api/users/:id/unblock/:blockUserId
+router.post('/:id/unblock/:blockUserId', UserController.unblockUser);
+
+// GET /api/users/:id/blocked -> get all users that the user has blocked
+router.get('/:id/blocked', UserController.getBlockedUsers);
 export default router;

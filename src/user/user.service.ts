@@ -563,7 +563,7 @@ export const userService = {
 
     // Save profils image
     const profilsImage = await sharp(file.buffer)
-      .resize(200, 200)
+      .resize(400, 400)
       .webp({ quality: 90 })
       .toBuffer();
     await uploadService.saveFile(profilsBucketName, imageName, profilsImage);

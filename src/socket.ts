@@ -1,20 +1,20 @@
-import { Server } from "http";
-import { Server as SocketServer, Socket } from "socket.io";
-import { onlineUsers } from "./globals";
-import { userService } from "./user/user.service";
+import { Server } from 'http';
+import { Server as SocketServer, Socket } from 'socket.io';
+import { onlineUsers } from './globals';
+import { userService } from './user/user.service';
 
 const createSocketServer = (server: Server) => {
-  const TYPING_MESSAGE_EVENT = "IS_TYPING";
-  const NEW_CHAT_MESSAGE_EVENT = "NEW_MESSAGE";
-  const SEND_MESSAGE_EVENT = "SEND_MESSAGE";
-  const JOIN_ROOM_EVENT = "JOIN_ROOM";
-  const LEAVE_ROOM_EVENT = "LEAVE_ROOM";
-  const SEEN_MESSAGE = "SEEN_MESSAGE";
-  const SEND_SEEN_MESSAGE = "SEND_SEEN_MESSAGE";
-  const ADD_USER = "ADD_USER";
-  const ONLINE_USERS = "ONLINE_USERS";
-  const CREATE_ROOM = "CREATE_ROOM";
-  const NEW_ROOM = "NEW_ROOM";
+  const TYPING_MESSAGE_EVENT = 'IS_TYPING';
+  const NEW_CHAT_MESSAGE_EVENT = 'NEW_MESSAGE';
+  const SEND_MESSAGE_EVENT = 'SEND_MESSAGE';
+  const JOIN_ROOM_EVENT = 'JOIN_ROOM';
+  const LEAVE_ROOM_EVENT = 'LEAVE_ROOM';
+  const SEEN_MESSAGE = 'SEEN_MESSAGE';
+  const SEND_SEEN_MESSAGE = 'SEND_SEEN_MESSAGE';
+  const ADD_USER = 'ADD_USER';
+  const ONLINE_USERS = 'ONLINE_USERS';
+  const CREATE_ROOM = 'CREATE_ROOM';
+  const NEW_ROOM = 'NEW_ROOM';
 
   const io = new SocketServer(server, {
     pingTimeout: 60000,
@@ -23,7 +23,7 @@ const createSocketServer = (server: Server) => {
     },
   });
 
-  io.on("connection", (socket: Socket) => {
+  io.on('connection', (socket: Socket) => {
     socket.on(ADD_USER, (userId: string) => {
       onlineUsers.set(userId, socket.id);
       userService.incrementUserConnection(userId);
@@ -38,7 +38,6 @@ const createSocketServer = (server: Server) => {
     socket.on(CREATE_ROOM, (data: any) => {
       const receiverSocketId = onlineUsers.get(data.receiverId);
       if (receiverSocketId) {
-        console.log("SEEEEEEEEEEEEEEEEEEEEEEND");
         socket.to(receiverSocketId).emit(NEW_ROOM, data.roomId);
       }
     });
@@ -61,7 +60,7 @@ const createSocketServer = (server: Server) => {
       }
     });
 
-    socket.on("disconnect", () => {
+    socket.on('disconnect', () => {
       onlineUsers.forEach((value, key) => {
         if (value === socket.id) {
           onlineUsers.delete(key);

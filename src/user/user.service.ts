@@ -1,539 +1,388 @@
-import bcrypt from 'bcrypt';
-import sharp from 'sharp';
-import { v4 as uuid } from 'uuid';
-import { Sequelize } from 'sequelize';
-import Room from '../room/room.model';
-import User from './user.model';
-import Message from '../message/message.model';
-import { onlineUsers } from '../globals';
-import UserImage from './user-image.model';
-import UserLanguage from './user-language.model';
-import { UserInput } from './user-input.dto';
-import UserRoom from '../room/user-room.model';
-import { UploadService } from '../upload/upload.service';
-import { MemoryFile } from '../types';
-import UserBlock from './user-block.model';
+import bcrypt from "bcrypt";
+import sharp from "sharp";
+import { v4 as uuid } from "uuid";
+import User from "./user.model";
+import { onlineUsers } from "../globals";
+import UserImage from "./user-image.model";
+import UserLanguage from "./user-language.model";
+import { MinioService } from "../minio/minio.service";
+import { In, Point, Repository } from "typeorm";
+import { PostgresqlService } from "../postgresql/postgresql.service";
+import { CreateUserDto } from "./dto/create-user.dto";
+import { UserDto } from "./dto/user.dto";
+import { UpdateUserDto } from "./dto/update-user.dto";
+import { QueryUserDto } from "./dto/query-user.dto";
+import { UploadImageDto } from "./dto/upload-image.dto";
+import { UpdatePasswordDto } from "./dto/update-password.dto";
+import { OrderImagesDto } from "./dto/order-images.dto";
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from "../shared/exception/http4xx.exception";
 
-export const userService = {
+export class UserService {
+  private static instance: UserService;
+  private readonly userRepository: Repository<User>;
+  private readonly userLanguageRepository: Repository<UserLanguage>;
+  private readonly userImageRepository: Repository<UserImage>;
+
+  private readonly MinioService: MinioService;
+
+  private constructor() {
+    const dataSource = PostgresqlService.getInstance().getDataSource();
+
+    this.userRepository = dataSource.getRepository(User);
+    this.userLanguageRepository = dataSource.getRepository(UserLanguage);
+    this.userImageRepository = dataSource.getRepository(UserImage);
+
+    this.MinioService = MinioService.getInstance();
+  }
+
+  static getInstance(): UserService {
+    if (!UserService.instance) {
+      UserService.instance = new UserService();
+    }
+
+    return UserService.instance;
+  }
+
+  static userToDto(user: User): UserDto {
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      googleId: user.googleId,
+      geom: user.geom,
+      points: user.points,
+      iamge: user.image,
+      gender: user.gender,
+      birthday: user.birthday,
+      bio: user.bio,
+      isNewUser: user.isNewUser,
+      connections: user.connections,
+      languageUsed: user.languageUsed,
+      avatarNumber: user.avatarNumber,
+      userImages: user.userImages,
+      isOnline: onlineUsers.has(user.id),
+    };
+  }
   // Get all users
-  async getUsers(): Promise<User[]> {
-    return await User.findAll();
-  },
-
-  // Get user by id
-  async getUserById(id: string): Promise<User | null> {
-    return await User.findByPk(id, {
-      include: ['userImages'],
-    });
-  },
-
-  // Create user
-  async createUser(user: User) {
-    // Create user with google connection
-    if (user.googleId) {
-      const userExists = await User.findOne({
-        where: {
-          googleId: user.googleId,
-          email: user.email,
-        },
-      });
-
-      if (userExists) {
-        // Connect user with google
-      } else {
-        const newUser = await User.create(user);
-
-        // Remove password from response
-        const userWithoutPassword = await User.findByPk(newUser.id);
-
-        if (!userWithoutPassword) {
-          throw new Error('Error creating user');
-        }
-
-        return userWithoutPassword;
-      }
-    } else {
-      const userExists = await User.findOne({
-        where: {
-          email: user.email,
-        },
-      });
-
-      if (userExists) {
-        throw new Error('User already exists');
-      }
-
-      if (!user.googleId) {
-        // Hash password
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(user.password, salt);
-      }
-
-      const newUser = await User.create(user);
-
-      // Remove password from response
-      const userWithoutPassword = await User.findByPk(newUser.id);
-
-      if (!userWithoutPassword) {
-        throw new Error('Error creating user');
-      }
-
-      return userWithoutPassword;
-    }
-  },
-
-  // Update user
-  async updateUser(id: string, user: UserInput): Promise<void> {
-    try {
-      const {
-        latitude,
-        longitude,
-        userLanguages,
-        ...userDataWithoutLanguages
-      } = user;
-
-      // Mettre à jour les autres champs utilisateur
-      await User.update(userDataWithoutLanguages, { where: { id } });
-
-      // Mettre à jour la colonne GEOM
-      if (latitude !== undefined && longitude !== undefined) {
-        await User.update(
-          {
-            geom: Sequelize.literal(
-              `ST_SetSRID(ST_MakePoint(${longitude}, ${latitude}), 4326)`
-            ),
-          },
-          { where: { id } }
-        );
-      }
-
-      // Ajouter les nouvelles langues
-      if (userLanguages && userLanguages.length > 0) {
-        await UserLanguage.bulkCreate(userLanguages);
-      }
-
-      if (user.bio) {
-        await User.update(
-          { bio: user.bio },
-          {
-            where: {
-              id: id,
-            },
-          }
-        );
-      }
-    } catch (error) {
-      console.log(error);
-    }
-  },
-
-  // Delete user
-  async deleteUser(id: string): Promise<void> {
-    await Message.destroy({
+  async getUsers(dto: QueryUserDto): Promise<UserDto[]> {
+    const users = await this.userRepository.find({
       where: {
-        senderId: id,
+        email: dto.email,
+        googleId: dto.googleId,
       },
     });
+    return users.map(UserService.userToDto);
+  }
 
-    await UserImage.destroy({
-      where: {
-        userId: id,
-      },
-    });
-
-    await UserLanguage.destroy({
-      where: {
-        userId: id,
-      },
-    });
-
-    await UserRoom.destroy({
-      where: {
-        userId: id,
-      },
-    });
-
-    await User.destroy({
+  // Get user
+  async getUserById(id: string): Promise<UserDto> {
+    const user = await this.userRepository.findOne({
       where: {
         id: id,
       },
+      relations: {
+        userImages: true,
+      },
     });
-  },
 
-  async getUserRooms(id: string) {
-    try {
-      const user = await User.findByPk(id, {
-        include: [
-          {
-            model: Room,
-            as: 'rooms',
-            include: [
-              {
-                model: User,
-                as: 'members',
-              },
-              {
-                model: Message,
-                as: 'messages',
-
-                order: [['createdAt', 'DESC']],
-                limit: 1,
-              },
-            ],
-            attributes: {
-              include: [
-                [
-                  Sequelize.literal(
-                    `(SELECT COUNT(*) FROM "Messages" WHERE "Messages"."roomId" = "rooms"."id" AND "Messages"."isSeen" = false AND "Messages"."senderId" != '${id}')`
-                  ),
-                  'countUnreadMessages',
-                ],
-              ],
-            },
-          },
-        ],
-      });
-
-      const rooms = user?.dataValues.rooms;
-
-      const usersBlockedByUser = await UserBlock.findAll({
-        where: {
-          blockerUserId: id,
-        },
-      });
-
-      const filteredRoomsBlocked = rooms?.filter((room: any) => {
-        const members = room.dataValues?.members;
-
-        const isBlocked = members?.some((member: any) => {
-          return usersBlockedByUser.some(
-            (user) => user.blockedUserId === member.id
-          );
-        });
-
-        return !isBlocked;
-      });
-
-      // add to members an attribute called isOnline and return the user with the updated rooms
-      const roomsWithMembers = filteredRoomsBlocked?.map((room: any) => {
-        const members = room.dataValues?.members;
-        const membersWithIsOnline = members?.map((member: any) => {
-          const socketId = onlineUsers.get(member.dataValues.id);
-          if (socketId) {
-            member.dataValues.isOnline = true;
-          } else {
-            member.dataValues.isOnline = false;
-          }
-          return member;
-        });
-
-        room.dataValues.members = membersWithIsOnline;
-        return room;
-      });
-
-      const userWithUpdatedRooms = {
-        ...user?.dataValues,
-        rooms: roomsWithMembers,
-      };
-
-      // console.log("userWithUpdatedRooms", userWithUpdatedRooms);
-
-      return userWithUpdatedRooms;
-    } catch (error) {
-      console.log(error);
+    if (!user) {
+      throw new NotFoundException("User not found");
     }
-  },
+    return UserService.userToDto(user);
+  }
 
-  async getUserByEmail(email: string): Promise<User | null> {
-    return await User.findOne({
+  async getUserByLoginRaw(email?: string, googleId?: string): Promise<User> {
+    if (!email && !googleId) {
+      throw new BadRequestException("Email or googleId is required");
+    }
+
+    const user = await this.userRepository.findOne({
       where: {
         email: email,
-      },
-      include: ['userImages'],
-    });
-  },
-
-  async getUserByGoogleId(googleId: string): Promise<User | null> {
-    const user = await User.findOne({
-      where: {
         googleId: googleId,
       },
     });
 
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
     return user;
-  },
+  }
 
-  async getUsersInMap(userId: string): Promise<User[]> {
-    try {
-      const now = Date.now();
+  // Create user
+  async createUser(dto: CreateUserDto): Promise<UserDto> {
+    const user = await this.createUserRaw(dto);
+    return UserService.userToDto(user);
+  }
 
-      const ONE_DAY = 24 * 60 * 60 * 1000; // Nombre de millisecondes en un jour
-      const MAX_DAYS = 365; // Nombre de jours après lesquels le score se stabilise près de la valeur minimale (à ajuster selon les besoins)
-
-      let users = await User.findAll({
-        attributes: [
-          'id',
-          'name',
-          'image',
-          'avatarNumber',
-          'birthday',
-          'gender',
-          'updatedAt',
-          'bio',
-          [
-            Sequelize.literal(`
-          ST_Point(
-            ST_X(geom) + (RANDOM() * 0.01 - 0.05),
-            ST_Y(geom) + (RANDOM() * 0.01 - 0.05)
-          )
-          `),
-            'geomR',
-          ],
-        ],
-        include: ['userImages'],
-      });
-
-      const user = await User.findByPk(userId, {
-        include: ['blockedUsers'],
-      });
-
-      const filteredUserBlocked = users.filter((userMap) => {
-        const blockedUsers = user.dataValues.blockedUsers;
-        if (blockedUsers.length > 0) {
-          return !blockedUsers.some(
-            (block) => block.dataValues.blockedUserId === userMap.id
-          );
-        }
-        return true;
-      });
-
-      filteredUserBlocked.forEach((user) => {
-        const updateTimestamp = user.dataValues.updatedAt.getTime();
-        const daysSinceUpdate = (now - updateTimestamp) / ONE_DAY;
-
-        const score = 100 * Math.exp(-daysSinceUpdate / MAX_DAYS);
-        const finalScore = Math.max(1, Math.min(Math.round(score), 100));
-
-        user.dataValues.points = finalScore;
-      });
-
-      return filteredUserBlocked;
-    } catch (error) {
-      console.log(error);
-    }
-  },
-
-  async getUserProfile(id: string): Promise<User | null> {
-    return await User.findByPk(id, {
-      include: ['userImages', 'userLanguages'],
-    });
-  },
-
-  async deleteUserProfileImage(id: string, position: number): Promise<void> {
-    const user = await User.findByPk(id, {
-      include: ['userImages'],
-    });
-
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    const userImages = user.dataValues.userImages;
-    console.log('userImages', userImages);
-    if (!userImages) {
-      throw new Error('User images not found');
-    }
-
-    const imageToDelete = userImages.find(
-      (image) => image.position == position
-    );
-
-    console.log('imageToDelete', imageToDelete);
-    if (!imageToDelete) {
-      throw new Error('Image not found');
-    }
-
-    await imageToDelete.destroy();
-
-    const newImages = userImages.filter(
-      (image) => image.id !== imageToDelete.id
-    );
-
-    console.log('newImages', newImages);
-
-    newImages.forEach(async (image, index) => {
-      await image.update({
-        position: index,
-      });
-    });
-
-    if (position == 0 && newImages.length > 0) {
-      await User.update(
-        { image: newImages[0].src },
-        {
-          where: {
-            id: id,
-          },
-        }
-      );
-    } else if (position == 0 && newImages.length == 0) {
-      await User.update(
-        { image: null },
-        {
-          where: {
-            id: id,
-          },
-        }
-      );
-    }
-  },
-
-  async updateUserProfileImage(id: string, position: number): Promise<void> {
-    const user = await User.findByPk(id, {
-      include: ['userImages'],
-    });
-
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    const userImages = user.dataValues.userImages;
-
-    if (!userImages) {
-      throw new Error('User images not found');
-    }
-
-    const imageToSetAsProfile = userImages[position];
-
-    if (!imageToSetAsProfile) {
-      throw new Error('Image not found');
-    }
-
-    await User.update(
-      { image: imageToSetAsProfile.src },
-      {
+  async createUserRaw(dto: CreateUserDto): Promise<User> {
+    if (dto.googleId) {
+      // If a user tries to create an new account with a googleId
+      // we should check if the user already exists
+      const userWithGoogleId = await this.userRepository.findOne({
         where: {
-          id: id,
+          googleId: dto.googleId,
         },
+      });
+      if (userWithGoogleId) {
+        throw new ConflictException("A user with this googleId already exists");
       }
-    );
-  },
 
-  async reorderUserProfileImages(id: string, newImagesOrder: UserImage[]) {
-    const user = await User.findByPk(id, {
-      include: ['userImages'],
-    });
-    if (!user) {
-      throw new Error('User not found');
-    }
-    const userImages = user.dataValues.userImages.sort(
-      (a, b) => a.position - b.position
-    );
+      // No user with this googleId, we should check if the user already exists with the same email
+      const userWithEmail = await this.userRepository.findOne({
+        where: {
+          email: dto.email,
+        },
+      });
 
-    if (!userImages) {
-      throw new Error('User images not found');
-    }
-    const imagesIds = userImages.map((image) => image.id);
-    const newImagesOrderIds = newImagesOrder.map((image) => image.id);
+      if (userWithEmail) {
+        // If a user with the same email exists, we should update the user with the googleId
+        return await this.userRepository.save({
+          ...userWithEmail,
+          googleId: dto.googleId,
+        });
+      }
 
-    if (imagesIds.length !== newImagesOrderIds.length) {
-      throw new Error('Images length is not the same');
+      // No user with the same email, we should create a new user from scratch
+      return await this.userRepository.save({
+        name: dto.name,
+        email: dto.email,
+        googleId: dto.googleId,
+      });
     }
-    const isSameArray = imagesIds.every((id, index) => {
-      return id === newImagesOrderIds[index];
-    });
 
-    if (isSameArray) {
-      throw new Error('Images order is the same');
+    // No googleId provided, we first check a password is provided
+    if (!dto.password) {
+      throw new BadRequestException("Password is required");
     }
-    await UserImage.destroy({
+
+    // Then we check if the user already exists with the same email
+    const userWithEmail = await this.userRepository.findOne({
       where: {
-        userId: id,
+        email: dto.email,
+      },
+    });
+    if (userWithEmail) {
+      throw new ConflictException("User already exists");
+    }
+
+    // The user does not exist, we should create a new user from scratch
+    // Hash the password
+    const newUser = await this.userRepository.save({
+      name: dto.name,
+      email: dto.email,
+      password: await bcrypt.hash(dto.password, 10),
+    });
+
+    if (dto.userLanguages) {
+      await this.userLanguageRepository.insert(
+        dto.userLanguages.map((lang) => ({ ...lang, user: newUser }))
+      );
+    }
+
+    return newUser;
+  }
+
+  // Update user
+  async updateUser(id: string, dto: UpdateUserDto): Promise<UserDto> {
+    const user = await this.userRepository.findOne({
+      where: {
+        id,
+      },
+      relations: {
+        blockedUsers: true,
       },
     });
 
-    await UserImage.bulkCreate(newImagesOrder);
-
-    await User.update(
-      { image: newImagesOrder[0].src },
-      {
-        where: {
-          id: id,
-        },
-      }
-    );
-  },
-
-  async incrementUserConnection(id: string): Promise<void> {
-    const user = await User.findByPk(id);
-
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundException("User not found");
     }
 
-    const newNbConnections = parseInt(user.connections) + 1;
+    const geom: Point | undefined =
+      dto.latitude && dto.longitude
+        ? {
+            type: "Point",
+            coordinates: [dto.longitude, dto.latitude],
+          }
+        : user.geom;
 
-    user.connections = newNbConnections.toString();
+    const blockedUsers = dto.blockedUserIds
+      ? await this.userRepository.find({
+          where: { id: In(dto.blockedUserIds) },
+        })
+      : user.blockedUsers;
 
-    await user.save();
-  },
+    // Ajouter les nouvelles langues
+    if (dto.userLanguages) {
+      await this.userLanguageRepository.delete({ user });
+      await this.userLanguageRepository.insert(
+        dto.userLanguages.map((lang) => ({ ...lang, user }))
+      );
+    }
 
-  async updateUserPassword(
-    oldPassword: string,
-    newPassword: string,
-    id: string
-  ): Promise<void> {
-    const salt = await bcrypt.genSalt(10);
+    const newUser = await this.userRepository.save({
+      ...user,
+      name: dto.name,
+      email: dto.email,
+      gender: dto.gender,
+      birthday: dto.birthday,
+      bio: dto.bio,
+      blockedUsers,
+      languageUsed: dto.languageUsed,
+      geom,
+    });
+    return UserService.userToDto(newUser);
+  }
 
-    const user = await User.scope('withPassword').findOne({
+  async updatePasswordRaw(id: string, password: string): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: {
+        id,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+
+    return await this.userRepository.save({
+      ...user,
+      password: await bcrypt.hash(password, 10),
+    });
+  }
+
+  // Delete user
+  async deleteUser(id: string): Promise<void> {
+    const user = await this.userRepository.findOne({
       where: {
         id: id,
       },
     });
 
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundException("User not found");
     }
 
-    const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
+    await Promise.all([
+      this.userLanguageRepository.delete({ user }),
+      this.userImageRepository.delete({ user }),
+    ]);
+
+    await this.userRepository.delete({
+      id: user.id,
+    });
+  }
+
+  async getUsersInMap(): Promise<UserDto[]> {
+    const now = Date.now();
+
+    const ONE_DAY = 24 * 60 * 60 * 1000; // Nombre de millisecondes en un jour
+    const MAX_DAYS = 365; // Nombre de jours après lesquels le score se stabilise près de la valeur minimale (à ajuster selon les besoins)
+
+    const users = await this.userRepository.find({
+      relations: {
+        userImages: true,
+      },
+    });
+
+    return users.map((user) => {
+      const updateTimestamp = user.updatedAt.getTime();
+      const daysSinceUpdate = (now - updateTimestamp) / ONE_DAY;
+
+      const score = 100 * Math.exp(-daysSinceUpdate / MAX_DAYS);
+      const finalScore = Math.max(1, Math.min(Math.round(score), 100));
+
+      user.points = finalScore;
+      user.geom = user.geom
+        ? {
+            type: "Point",
+            coordinates: user.geom.coordinates.map(
+              (coord) => coord + Math.random() * 0.01 - 0.05
+            ),
+          }
+        : undefined;
+      return UserService.userToDto(user);
+    });
+  }
+
+  async incrementUserConnection(id: string): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { id } });
+
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+
+    await this.userRepository.save({
+      ...user,
+      connections: user.connections + 1,
+    });
+  }
+
+  async updateUserPassword(id: string, dto: UpdatePasswordDto): Promise<void> {
+    const user = await this.userRepository.findOne({
+      where: {
+        id,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+    if (!user.password) {
+      throw new ForbiddenException("User has no password");
+    }
+    if (dto.newPassword === dto.oldPassword) {
+      throw new BadRequestException(
+        "New password must be different from old password"
+      );
+    }
+    const isPasswordValid = await bcrypt.compare(
+      dto.oldPassword,
+      user.password
+    );
 
     if (!isPasswordValid) {
-      throw new Error('Password is not valid');
+      throw new ForbiddenException("Old password is not valid");
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    const hashedPassword = await bcrypt.hash(dto.newPassword, 10);
+    await this.userRepository.save({ ...user, password: hashedPassword });
+  }
 
-    await User.update(
-      { password: hashedPassword },
-      {
-        where: {
-          id: id,
-        },
-      }
-    );
-  },
+  async uploadImage(userId: string, dto: UploadImageDto): Promise<UserImage> {
+    const mapBucketName = "map";
+    const profilsBucketName = "profils";
 
-  async uploadUserImage(
-    userId: string,
-    position: number,
-    file: MemoryFile
-  ): Promise<UserImage> {
-    const uploadService = UploadService.getInstance();
-    const mapBucketName = 'map';
-    const profilsBucketName = 'profils';
+    const user = await this.userRepository.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
 
     // Create map and profils buckets if they don't exist asynchronously
     await Promise.all([
-      uploadService.bucketExists(mapBucketName).then(async (exists) => {
+      this.MinioService.bucketExists(mapBucketName).then(async (exists) => {
         if (!exists) {
-          await uploadService.createBucket(mapBucketName);
-          await uploadService.setBucketPublicAccess(mapBucketName, true);
+          await this.MinioService.createBucket(mapBucketName);
+          await this.MinioService.setBucketPublicAccess(mapBucketName, true);
         }
       }),
-      uploadService.bucketExists(profilsBucketName).then(async (exists) => {
+      this.MinioService.bucketExists(profilsBucketName).then(async (exists) => {
         if (!exists) {
-          await uploadService.createBucket(profilsBucketName);
-          await uploadService.setBucketPublicAccess(profilsBucketName, true);
+          await this.MinioService.createBucket(profilsBucketName);
+          await this.MinioService.setBucketPublicAccess(
+            profilsBucketName,
+            true
+          );
         }
       }),
     ]);
@@ -541,87 +390,134 @@ export const userService = {
     const imageName = `${uuid()}.webp`;
 
     // Save map image only if it's the first image
-    if (position == 0) {
-      const mapImage = await sharp(file.buffer)
+    if (dto.position == 0) {
+      const mapImage = await sharp(dto.image.buffer)
         .resize(100, 100)
         .webp({ quality: 50 })
         .toBuffer();
-      await uploadService.saveFile(mapBucketName, imageName, mapImage);
-      await User.update(
-        {
-          image: `${
-            process.env.MINIO_EXTERNAL_URL || 'http://localhost:9000'
-          }/${mapBucketName}/${imageName}`,
-        },
-        {
-          where: {
-            id: userId,
-          },
-        }
-      );
+      await this.MinioService.saveFile(mapBucketName, imageName, mapImage);
+      await this.userRepository.save({
+        image: `${
+          process.env.MINIO_EXTERNAL_URL ?? "http://localhost:9000"
+        }/${mapBucketName}/${imageName}`,
+      });
     }
 
     // Save profils image
-    const profilsImage = await sharp(file.buffer)
-      .resize(400, 400)
+    const profilsImage = await sharp(dto.image.buffer)
+      .resize(200, 200)
       .webp({ quality: 90 })
       .toBuffer();
-    await uploadService.saveFile(profilsBucketName, imageName, profilsImage);
+    await this.MinioService.saveFile(
+      profilsBucketName,
+      imageName,
+      profilsImage
+    );
 
     // Save image UUID in database and return image
-    const image = await UserImage.create({
+    const image = await this.userImageRepository.save({
       src: `${
-        process.env.MINIO_EXTERNAL_URL || 'http://localhost:9000'
+        process.env.MINIO_EXTERNAL_URL ?? "http://localhost:9000"
       }/${profilsBucketName}/${imageName}`,
-      position: position,
-      userId: userId,
+      position: dto.position,
+      user,
     });
     return image;
-  },
+  }
 
-  async blockUser(userId: string, blockUserId: string): Promise<void> {
-    if (userId === blockUserId) {
-      throw new Error('You cannot block yourself');
-    }
+  async reorderImages(id: string, dto: OrderImagesDto): Promise<void> {
+    const user = await this.userRepository.findOne({
+      where: {
+        id,
+      },
+      relations: {
+        userImages: true,
+      },
+    });
 
-    const user = await User.findByPk(userId);
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundException("User not found");
+    }
+    if (!user.userImages) {
+      throw new ForbiddenException("No images found for this user");
+    }
+    if (user.userImages.length !== dto.order.length) {
+      throw new BadRequestException("Images length is not the same");
     }
 
-    const blockUser = await User.findByPk(blockUserId);
-    if (!blockUser) {
-      throw new Error('Block user not found');
+    await Promise.all(
+      user.userImages
+        .toSorted((ua1, ua2) => ua1.position - ua2.position)
+        .map((image, index) =>
+          this.userImageRepository.save({
+            ...image,
+            position: dto.order[index],
+          })
+        )
+    );
+  }
+
+  async deleteImage(id: string, position: number): Promise<void> {
+    const user = await this.userRepository.findOne({
+      where: {
+        id,
+      },
+      relations: {
+        userImages: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+    if (!user.userImages) {
+      throw new ForbiddenException("No images found for this user");
     }
 
-    await UserBlock.create({
-      blockedUserId: blockUserId,
-      blockerUserId: userId,
-    });
-  },
+    const imageToDelete = user.userImages.find(
+      (image) => image.position === position
+    );
+    if (!imageToDelete) {
+      throw new NotFoundException("Image not found");
+    }
 
-  async unblockUser(userId: string, blockUserId: string): Promise<void> {
-    await UserBlock.destroy({
+    await this.userImageRepository.delete({
+      id: imageToDelete.id,
+    });
+
+    const [bucketName, objectName] = new URL(imageToDelete.src).pathname.split(
+      "/"
+    );
+    await this.MinioService.deleteFile(bucketName, objectName);
+  }
+
+  async setDefaultImage(id: string, position: number): Promise<void> {
+    const user = await this.userRepository.findOne({
       where: {
-        blockedUserId: blockUserId,
-        blockerUserId: userId,
+        id,
+      },
+      relations: {
+        userImages: true,
       },
     });
-  },
 
-  async getBlockedUsers(userId: string): Promise<User[]> {
-    const blockedUsers = await UserBlock.findAll({
-      where: {
-        blockerUserId: userId,
-      },
-      include: [
-        {
-          model: User,
-          as: 'blockedUser',
-        },
-      ],
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+    if (!user.userImages) {
+      throw new ForbiddenException("No images found for this user");
+    }
+
+    const imageToSetDefault = user.userImages.find(
+      (image) => image.position === position
+    );
+    if (!imageToSetDefault) {
+      throw new NotFoundException("Image not found");
+    }
+
+    await this.userRepository.save({
+      ...user,
+      image: imageToSetDefault.src,
     });
-
-    return blockedUsers.map((block) => block.dataValues.blockedUser);
-  },
-};
+  }
+}

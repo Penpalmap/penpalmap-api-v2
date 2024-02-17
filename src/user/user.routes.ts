@@ -1,56 +1,60 @@
-import { Router } from 'express';
-import { UserController } from './user.controller';
-import { upload } from '../uploadConfig';
+import { UserController } from "./user.controller";
+import { upload } from "../minio/minio.config";
+import { BaseRouter } from "../shared/base.router";
+import { asyncErrorWrapper } from "../shared/async-error-wrapper";
 
-const router = Router();
+export class UserRouter extends BaseRouter {
+  private static instance: UserRouter;
+  private readonly userController: UserController;
 
-// GET /api/users
-router.get('/', UserController.getUsers);
+  private constructor() {
+    super();
+    this.userController = UserController.getInstance();
 
-// GET /api/users/:id
-router.get('/:id', UserController.getUserById);
+    this.router.get("/", asyncErrorWrapper(this.userController.getUsers));
+    this.router.get("/:id", asyncErrorWrapper(this.userController.getUserById));
+    this.router.get(
+      "/email/:email",
+      asyncErrorWrapper(this.userController.getUserByEmail)
+    );
+    this.router.post("/", asyncErrorWrapper(this.userController.createUser));
+    this.router.put("/:id", asyncErrorWrapper(this.userController.updateUser));
+    this.router.delete(
+      "/:id",
+      asyncErrorWrapper(this.userController.deleteUser)
+    );
+    this.router.get(
+      "/googleId/:googleId",
+      asyncErrorWrapper(this.userController.getUserByGoogleId)
+    );
+    this.router.post(
+      "/:id/image",
+      upload.single("profileImage"),
+      asyncErrorWrapper(this.userController.uploadImage)
+    );
+    this.router.get(
+      "/:id/profile",
+      asyncErrorWrapper(this.userController.getUserById)
+    );
+    this.router.delete(
+      "/:id/profile/images/:position",
+      asyncErrorWrapper(this.userController.deleteImage)
+    );
+    this.router.put(
+      "/:id/profile/reorder",
+      asyncErrorWrapper(this.userController.reorderImages)
+    );
+    this.router.put(
+      "/:id/password",
+      asyncErrorWrapper(this.userController.updateUserPassword)
+    );
+  }
 
-// GET /api/users/:email
-router.get('/email/:email', UserController.getUserByEmail);
+  static getInstance(): UserRouter {
+    if (!UserRouter.instance) {
+      UserRouter.instance = new UserRouter();
+    }
 
-// POST /api/users
-router.post('/', UserController.createUser);
-
-// PUT /api/users/:id
-router.put('/:id', UserController.updateUser);
-
-// DELETE /api/users/:id
-router.delete('/:id', UserController.deleteUser);
-
-// GET /api/users/:id/rooms
-router.use('/:id/rooms', UserController.getUserRooms);
-
-// GET /api/users/google/:googleId
-router.get('/googleId/:googleId', UserController.getUserByGoogleId);
-
-router.post(
-  '/:id/image',
-  upload.single('profileImage'),
-  UserController.uploadUserImage
-);
-
-router.get('/:id/profile', UserController.getUserProfile);
-
-router.delete(
-  '/:id/profile/images/:position',
-  UserController.deleteUserProfileImage
-);
-
-router.put('/:id/profile/reorder', UserController.reorderUserProfileImages);
-
-router.put('/:id/password', UserController.updateUserPassword);
-
-// POST /api/users/:id/block/:blockUserId
-router.post('/:id/block/:blockUserId', UserController.blockUser);
-
-// POST /api/users/:id/unblock/:blockUserId
-router.post('/:id/unblock/:blockUserId', UserController.unblockUser);
-
-// GET /api/users/:id/blocked -> get all users that the user has blocked
-router.get('/:id/blocked', UserController.getBlockedUsers);
-export default router;
+    return UserRouter.instance;
+  }
+}

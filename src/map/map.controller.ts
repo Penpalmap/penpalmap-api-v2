@@ -1,17 +1,27 @@
-import { Request, Response } from 'express';
-import { userService } from '../user/user.service';
-import { IGetUserAuthInfoRequest } from '../types';
+import { Request, Response } from "express";
+import { MapService } from "./map.services";
 
-const MapController = {
-  getUsers: async (req: IGetUserAuthInfoRequest, res: Response) => {
-    try {
-      const userId = req.params.id;
-      const users = await userService.getUsersInMap(userId);
-      res.json(users);
-    } catch (error) {
-      res.status(500).json({ error: error });
+export class MapController {
+  private static instance: MapController;
+  private readonly mapService: MapService;
+
+  private constructor() {
+    this.mapService = MapService.getInstance();
+  }
+
+  public static getInstance(): MapController {
+    if (!MapController.instance) {
+      MapController.instance = new MapController();
     }
-  },
-};
 
-export default MapController;
+    return MapController.instance;
+  }
+
+  getUsers = async (
+    _req: Request<never, never, never, never, never>,
+    res: Response
+  ) => {
+    const users = await this.mapService.getUsersInMap();
+    res.json(users);
+  };
+}

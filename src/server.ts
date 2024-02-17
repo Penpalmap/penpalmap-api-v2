@@ -1,13 +1,13 @@
 // server.ts
 
-import app from "./app";
-import createSocketServer from "./socket";
+import app from "./app/app";
+import { MessageSocket } from "./message/message.socket";
 const port = 5000;
 
 // Démarrage du serveur
 const server = app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+  console.log(`Sarted server on port ${port}`);
 
   // Appel de la fonction createSocketServer en lui passant le serveur
-  createSocketServer(server);
+  MessageSocket.getInstance(server);
 });

@@ -1,61 +1,90 @@
 import Message from "./message.model";
-import Room from "../room/room.model";
-import UserRoom from "../room/user-room.model";
-import { MessageInput } from "./message-input.dto";
+import { Repository } from "typeorm";
+import { PostgresqlService } from "../postgresql/postgresql.service";
+import { MessageDto } from "./dto/message.dto";
+import { UserService } from "../user/user.service";
+import { CreateMessageDto } from "./dto/create-message.dto";
+import { RoomService } from "../room/room.service";
+import { UpdateMessageDto } from "./dto/update-message.dto";
+import { NotFoundException } from "../shared/exception/http4xx.exception";
 
-export const messageService = {
-  // Get all messages
-  async getMessages(): Promise<Message[]> {
-    return await Message.findAll();
-  },
-  // Get message by id
-  async getMessageById(id: string): Promise<Message | null> {
-    return await Message.findByPk(id);
-  },
-  // Create message
-  async createMessage(message: MessageInput): Promise<any | null> {
-    let room: Room | null;
+export class MessageService {
+  private static instance: MessageService;
+  private readonly messageRepository: Repository<Message>;
+  private readonly userService: UserService;
+  private readonly roomService: RoomService;
 
-    if (!message.roomId) {
-      // Si le roomId n'est pas fourni, créer une nouvelle room
-      room = await Room.create();
-      // Ajouter les membres à la nouvelle room
-      await UserRoom.bulkCreate([
-        { userId: message.senderId, roomId: room.id } as UserRoom,
-        { userId: message.receiverId, roomId: room.id } as UserRoom,
-      ]);
-    } else {
-      // Si le roomId est fourni, vérifier si la room existe
-      room = await Room.findByPk(message.roomId);
-      if (!room) {
-        throw new Error("La room spécifiée n'existe pas");
-      }
+  private constructor() {
+    const dataSource = PostgresqlService.getInstance().getDataSource();
+    this.messageRepository = dataSource.getRepository(Message);
+
+    this.userService = UserService.getInstance();
+    this.roomService = RoomService.getInstance();
+  }
+
+  static getInstance(): MessageService {
+    if (!MessageService.instance) {
+      MessageService.instance = new MessageService();
     }
 
-    // Créer le message dans la room
-    const createdMessage = await Message.create({
-      content: message.content,
-      room: room,
-      roomId: room.id,
-      senderId: message.senderId,
-    } as Message);
+    return MessageService.instance;
+  }
 
-    // return created message with room
-    const createdMessageWithRoom = await Message.findByPk(createdMessage.id, {
-      include: [{ model: Room, as: "room" }],
+  static messageToDto(message: Message): MessageDto {
+    return {
+      id: message.id,
+      content: message.content,
+      isSeen: message.isSeen,
+      sender: message.sender
+        ? UserService.userToDto(message.sender)
+        : undefined,
+    };
+  }
+
+  // Get all messages
+  async getMessages(): Promise<MessageDto[]> {
+    const messages = await this.messageRepository.find();
+    return messages.map((message) => MessageService.messageToDto(message));
+  }
+
+  // Get message by id
+  async getMessageById(id: string): Promise<MessageDto> {
+    const message = await this.messageRepository.findOne({
+      where: { id },
+    });
+    if (!message) {
+      throw new NotFoundException("Message not found");
+    }
+    return MessageService.messageToDto(message);
+  }
+
+  // Create message
+  async createMessage(dto: CreateMessageDto): Promise<MessageDto> {
+    const sender = await this.userService.getUserById(dto.senderId);
+    const room = await this.roomService.getRoomById(dto.roomId);
+
+    const message = await this.messageRepository.save({
+      content: dto.content,
+      sender,
+      room,
+    });
+    return MessageService.messageToDto(message);
+  }
+
+  // Update message
+  async updateMessage(id: string, dto: UpdateMessageDto): Promise<MessageDto> {
+    const message = await this.messageRepository.findOne({
+      where: { id },
     });
 
-    if (createdMessageWithRoom) {
-      let messageCreated = {
-        ...createdMessageWithRoom.toJSON(),
-        isNewRoom: !message.roomId,
-      };
-
-      return messageCreated;
+    if (!message) {
+      throw new NotFoundException("Message not found");
     }
-  },
-  // Update message
-  async updateMessage(id: string, message: Message): Promise<void> {
-    await Message.update(message, { where: { id } });
-  },
-};
+
+    const updatedMessage = await this.messageRepository.save({
+      ...message,
+      ...dto,
+    });
+    return MessageService.messageToDto(updatedMessage);
+  }
+}

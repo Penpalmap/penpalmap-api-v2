@@ -1,9 +1,26 @@
-import { Router } from "express";
+import { BaseRouter } from "../shared/base.router";
+import { asyncErrorWrapper } from "../shared/async-error-wrapper";
 import { MessageController } from "./message.controller";
 
-const router = Router();
+export class MessageRouter extends BaseRouter {
+  private static instance: MessageRouter;
+  private readonly messageController: MessageController;
 
-// POST /api/users
-router.post("/", MessageController.createMessage);
+  private constructor() {
+    super();
+    this.messageController = MessageController.getInstance();
 
-export default router;
+    this.router.post(
+      "/",
+      asyncErrorWrapper(this.messageController.createMessage)
+    );
+  }
+
+  public static getInstance(): MessageRouter {
+    if (!MessageRouter.instance) {
+      MessageRouter.instance = new MessageRouter();
+    }
+
+    return MessageRouter.instance;
+  }
+}

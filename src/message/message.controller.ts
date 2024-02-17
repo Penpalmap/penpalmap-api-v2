@@ -1,14 +1,27 @@
 import { Request, Response } from "express";
-import { messageService } from "./message.service";
+import { MessageService } from "./message.service";
+import { CreateMessageDto } from "./dto/create-message.dto";
 
-export const MessageController = {
-  async createMessage(req: Request, res: Response): Promise<void> {
-    try {
-      const message = await messageService.createMessage(req.body);
-      res.json(message);
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: err });
+export class MessageController {
+  private static instance: MessageController;
+  private readonly messageService: MessageService;
+
+  private constructor() {
+    this.messageService = MessageService.getInstance();
+  }
+
+  static getInstance(): MessageController {
+    if (!MessageController.instance) {
+      MessageController.instance = new MessageController();
     }
-  },
-};
+    return MessageController.instance;
+  }
+
+  createMessage = async (
+    req: Request<never, never, CreateMessageDto, never, never>,
+    res: Response
+  ): Promise<void> => {
+    const message = await this.messageService.createMessage(req.body);
+    res.json(message);
+  };
+}

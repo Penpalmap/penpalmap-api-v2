@@ -1,130 +1,115 @@
-import Message from "../message/message.model";
 import Room from "./room.model";
-import User from "../user/user.model";
-import { Op, Sequelize } from "sequelize";
-import UserRoom from "./user-room.model";
+import { Repository } from "typeorm";
+import { PostgresqlService } from "../postgresql/postgresql.service";
+import { RoomDto } from "./dto/room.dto";
+import { CreateRoomDto } from "./dto/create-room.dto";
+import { UpdateRoomDto } from "./dto/update-room.dto";
+import { QueryRoomDto } from "./dto/query-room.dto";
+import { UserService } from "../user/user.service";
+import { NotFoundException } from "../shared/exception/http4xx.exception";
 
-export const roomService = {
+export class RoomService {
+  private static instance: RoomService;
+  private readonly roomRepository: Repository<Room>;
+  private readonly userService: UserService;
+
+  private constructor() {
+    const postgresqlService = PostgresqlService.getInstance();
+    this.roomRepository = postgresqlService.getDataSource().getRepository(Room);
+    this.userService = UserService.getInstance();
+  }
+
+  static getInstance(): RoomService {
+    if (!RoomService.instance) {
+      RoomService.instance = new RoomService();
+    }
+
+    return RoomService.instance;
+  }
+
+  static roomToDto(room: Room): RoomDto {
+    return {
+      id: room.id,
+      members: room.members?.map(UserService.userToDto),
+    };
+  }
+
   // Get all rooms
-  async getRooms(): Promise<Room[]> {
-    return await Room.findAll();
-  },
+  async getRooms(dto: QueryRoomDto): Promise<RoomDto[]> {
+    if (dto.userIds) {
+      const query = this.roomRepository
+        .createQueryBuilder("room")
+        .leftJoinAndSelect("room.members", "member");
+      dto.userIds.forEach((userId) => {
+        query.andWhere((queryBuilder) => {
+          const subQuery = queryBuilder
+            .subQuery()
+            .select("room_sub.id")
+            .from(Room, "room_sub")
+            .leftJoin("room_sub.members", "member_sub")
+            .where("member_sub.id = :userId", { userId })
+            .getQuery();
+          return "room.id IN " + subQuery;
+        });
+      });
+      const rooms = await query.getMany();
+      return rooms.map((room) => RoomService.roomToDto(room));
+    }
+
+    const rooms = await this.roomRepository.find();
+    return rooms.map((room) => RoomService.roomToDto(room));
+  }
 
   // Get room by id
-  async getRoomById(id: string): Promise<Room | null> {
-    try {
-      const room = await Room.findOne({
-        where: {
-          id: id,
+  async getRoomById(id: string): Promise<RoomDto> {
+    const room = await this.roomRepository.findOne({
+      where: {
+        id: id,
+      },
+      relations: {
+        members: true,
+        messages: true,
+      },
+      order: {
+        messages: {
+          createdAt: "DESC",
         },
-        include: [
-          {
-            model: User,
-            as: "members",
-          },
-          {
-            model: Message,
-            as: "messages",
+      },
+    });
 
-            order: [["createdAt", "DESC"]],
-            limit: 1,
-          },
-        ],
-        // attributes: {
-        //   include: [
-        //     [
-        //       sequelize.literal(
-        //         `(SELECT COUNT(*) FROM "Messages" WHERE "Messages"."roomId" = "rooms"."id" AND "Messages"."isSeen" = false AND "Messages"."senderId" != '${id}')`
-        //       ),
-        //       "countUnreadMessages",
-        //     ],
-        //   ],
-        // },
-      });
-      return room;
-    } catch (error) {
-      console.log("error", error);
+    if (!room) {
+      throw new NotFoundException("Room not found");
     }
-  },
+    return RoomService.roomToDto(room);
+  }
 
   // Create room
-  async createRoom(room: Room): Promise<Room> {
-    return await Room.create(room);
-  },
+  async createRoom(dto: CreateRoomDto): Promise<RoomDto> {
+    const members = await Promise.all(
+      dto.memberIds.map((userId) => this.userService.getUserById(userId))
+    );
+    const room = await this.roomRepository.save({
+      members,
+    });
+    return RoomService.roomToDto(room);
+  }
 
   // Update room
-  async updateRoom(id: string, room: Room): Promise<void> {
-    await Room.update(room, { where: { id } });
-  },
-
-  // Get room by users
-  async getRoomByUsers(userId1: string, userId2: string): Promise<Room | null> {
-    // get rooms where user1 and user2 are members
-    try {
-      const room = await UserRoom.findOne({
-        where: {
-          userId: {
-            [Op.in]: [userId1, userId2],
-          },
-        },
-        attributes: ["roomId"],
-        group: ["roomId"],
-        having: Sequelize.literal(`COUNT(*) = 2`),
-      });
-
-      if (room) {
-        return await Room.findByPk(room.roomId, {
-          include: [
-            {
-              model: User,
-              as: "members",
-            },
-            // {
-            //   model: Message,
-            //   as: "messages",
-            // },
-          ],
-        });
-      }
-
-      return null;
-    } catch (error) {
-      console.log(error);
-      return null;
-    }
-  },
-
-  async setMessagesIsReadByRoomId(
-    roomId: string,
-    userId: string
-  ): Promise<void> {
-    // update all messages in room where senderId is not userId
-    await Message.update(
-      { isSeen: true },
-      {
-        where: {
-          roomId: roomId,
-          senderId: {
-            [Op.eq]: userId,
-          },
-        },
-      }
-    );
-  },
-
-  async getMessagesByRoomId(
-    roomId: string,
-    limit: string = "10",
-    offset: string = "0",
-    sort: string = "desc"
-  ): Promise<Message[]> {
-    return await Message.findAll({
+  async updateRoom(id: string, dto: UpdateRoomDto): Promise<RoomDto> {
+    const room = await this.roomRepository.findOne({
       where: {
-        roomId: roomId,
+        id: id,
       },
-      order: [["createdAt", sort]],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
     });
-  },
-};
+
+    if (!room) {
+      throw new NotFoundException("Room not found");
+    }
+
+    const updatedRoom = await this.roomRepository.save({
+      ...room,
+      ...dto,
+    });
+    return RoomService.roomToDto(updatedRoom);
+  }
+}

@@ -1,34 +1,37 @@
 import {
-  BelongsTo,
   Column,
-  DataType,
-  ForeignKey,
-  Model,
-  Table,
-} from "sequelize-typescript";
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from "typeorm";
 import User from "./user.model";
 
-@Table
-export default class UserLanguage extends Model<UserLanguage> {
-  @Column({
-    type: DataType.STRING,
-    allowNull: false,
-  })
-  declare language: string;
+@Entity()
+export default class UserLanguage {
+  @PrimaryGeneratedColumn("uuid")
+  id: string;
 
-  @Column({
-    type: DataType.STRING,
-    allowNull: false,
+  @Column("varchar", {
+    nullable: false,
   })
-  declare level: string;
+  language: string;
 
-  @ForeignKey(() => User)
-  @Column({
-    type: DataType.UUID,
-    allowNull: false,
+  @Column("varchar", {
+    nullable: false,
   })
-  declare userId: string;
+  level: string;
 
-  @BelongsTo(() => User)
-  user!: User;
+  @ManyToOne(() => User, (user) => user.userLanguages, {
+    onUpdate: "CASCADE",
+  })
+  @JoinColumn({ name: "userId" })
+  user: User;
+
+  @CreateDateColumn({ type: "timestamptz" })
+  createdAt: Date;
+
+  @CreateDateColumn({ type: "timestamptz" })
+  updatedAt: Date;
 }

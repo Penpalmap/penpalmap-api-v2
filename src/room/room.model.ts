@@ -1,29 +1,32 @@
-import {
-  BelongsToMany,
-  Column,
-  DataType,
-  HasMany,
-  Model,
-  PrimaryKey,
-  Table,
-} from "sequelize-typescript";
 import User from "../user/user.model";
-import UserRoom from "./user-room.model";
 import Message from "../message/message.model";
+import {
+  CreateDateColumn,
+  Entity,
+  JoinTable,
+  ManyToMany,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from "typeorm";
 
-@Table
-export default class Room extends Model<Room> {
-  @PrimaryKey
-  @Column({
-    type: DataType.UUID,
-    allowNull: false,
-    defaultValue: DataType.UUIDV4,
+@Entity()
+export default class Room {
+  @PrimaryGeneratedColumn("uuid")
+  id: string;
+
+  @CreateDateColumn({ type: "timestamptz" })
+  createdAt: Date;
+
+  @UpdateDateColumn({ type: "timestamptz" })
+  updatedAt: Date;
+
+  @ManyToMany(() => User, (user) => user.rooms)
+  @JoinTable({
+    name: "UserRooms",
   })
-  declare id: string;
+  members?: User[];
 
-  @BelongsToMany(() => User, () => UserRoom)
-  members!: User[];
-
-  @HasMany(() => Message)
-  messages!: Message[];
+  @OneToMany(() => Message, (message) => message.room)
+  messages?: Message[];
 }

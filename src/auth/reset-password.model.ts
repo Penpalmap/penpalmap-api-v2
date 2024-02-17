@@ -1,39 +1,38 @@
 import {
-  Model,
-  Table,
   Column,
-  DataType,
-  ForeignKey,
-} from "sequelize-typescript";
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from "typeorm";
 import User from "../user/user.model";
 
-@Table
-export default class ResetPassword extends Model<ResetPassword> {
-  @Column({
-    type: DataType.UUID,
-    defaultValue: DataType.UUIDV4,
-    allowNull: false,
-    primaryKey: true,
-  })
-  declare id: string;
+@Entity()
+export default class ResetPassword {
+  @PrimaryGeneratedColumn("uuid")
+  id: string;
 
-  @ForeignKey(() => User)
-  @Column({
-    type: DataType.UUID,
-    allowNull: false,
+  @ManyToOne(() => User, (user) => user.resetPasswords, {
+    onDelete: "CASCADE",
+    onUpdate: "CASCADE",
   })
-  declare userId: string;
+  @JoinColumn({ name: "userId" })
+  user?: User;
 
-  @Column({
-    type: DataType.STRING,
-    allowNull: false,
-  })
-  declare token: string;
+  @Column("varchar", { nullable: false })
+  token: string;
 
-  @Column({
-    type: DataType.DATE,
-    allowNull: false,
-    defaultValue: () => new Date(Date.now() + 3600000), // Expiration par défaut après 1 heure
+  @Column("timestamptz", {
+    nullable: false,
+    default: () => "CURRENT_TIMESTAMP + INTERVAL 1 HOUR",
   })
-  declare expiresAt: Date;
+  expiresAt: Date;
+
+  @CreateDateColumn({ type: "timestamptz" })
+  createdAt: Date;
+
+  @UpdateDateColumn({ type: "timestamptz" })
+  updatedAt: Date;
 }

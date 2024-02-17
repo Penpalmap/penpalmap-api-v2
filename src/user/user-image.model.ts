@@ -1,38 +1,38 @@
 import {
-  BelongsTo,
   Column,
-  DataType,
-  DefaultScope,
-  ForeignKey,
-  Model,
-  Table,
-} from "sequelize-typescript";
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from "typeorm";
 import User from "./user.model";
 
-@DefaultScope(() => ({
-  attributes: { exclude: ["createdAt", "updatedAt"] },
-}))
-@Table
-export default class UserImage extends Model<UserImage> {
-  @Column({
-    type: DataType.STRING,
-    allowNull: false,
-  })
-  declare src: string;
+@Entity()
+export default class UserImage {
+  @PrimaryGeneratedColumn("uuid")
+  id: string;
 
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
+  @Column("varchar", {
+    nullable: false,
   })
-  declare position: number;
+  src: string;
 
-  @ForeignKey(() => User)
-  @Column({
-    type: DataType.UUID,
-    allowNull: false,
+  @Column("int4", {
+    nullable: false,
   })
-  declare userId: string;
+  position: number;
 
-  @BelongsTo(() => User)
-  user!: User;
+  @ManyToOne(() => User, (user) => user.userImages, {
+    onUpdate: "CASCADE",
+  })
+  @JoinColumn({ name: "userId" })
+  user: User;
+
+  @CreateDateColumn({ type: "timestamptz" })
+  createdAt: Date;
+
+  @UpdateDateColumn({ type: "timestamptz" })
+  updatedAt: Date;
 }

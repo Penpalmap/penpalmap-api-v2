@@ -8,35 +8,24 @@ import {
   UpdateDateColumn,
 } from "typeorm";
 import User from "../user/user.model";
-import Room from "../room/room.model";
 
 @Entity()
-export default class Message {
+export default class RefreshToken {
   @PrimaryGeneratedColumn("uuid")
-  id: string;
+  id: number;
 
   @Column("varchar", {
     nullable: false,
+    unique: true,
   })
-  content: string;
+  token: string;
 
-  @Column("boolean", {
-    nullable: false,
-    default: false,
-  })
-  isSeen: boolean;
-
-  @ManyToOne(() => User, (user) => user.messages, {
+  @ManyToOne(() => User, (user) => user.refreshTokens, {
     onUpdate: "CASCADE",
+    onDelete: "CASCADE",
   })
-  @JoinColumn({ name: "senderId" })
-  sender?: User;
-
-  @ManyToOne(() => Room, (room) => room.messages, {
-    onUpdate: "CASCADE",
-  })
-  @JoinColumn({ name: "roomId" })
-  room?: Room;
+  @JoinColumn({ name: "userId" })
+  user?: User;
 
   @CreateDateColumn({ type: "timestamptz" })
   createdAt: Date;

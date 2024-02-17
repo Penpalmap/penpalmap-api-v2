@@ -1,28 +1,23 @@
-import { Sequelize } from "sequelize-typescript";
+import { DataSource } from "typeorm";
 
 export class PostgresqlService {
   private static instance: PostgresqlService;
-  private sequelize: Sequelize;
+  private readonly dataSource: DataSource;
 
   private constructor() {
-    this.sequelize = new Sequelize({
-      database: process.env.DB_NAME,
-      username: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      host: process.env.DB_HOST || "localhost",
-      dialect: "postgres",
-      models: [__dirname + "/../**/*.model.{ts,js}"],
+    this.dataSource = new DataSource({
+      type: "postgres",
+      host: process.env.DB_HOST ?? "localhost",
+      port: parseInt(process.env.DB_PORT ?? "5432") ?? 5432,
+      username: process.env.DB_USER ?? "postgres",
+      password: process.env.DB_PASSWORD ?? "secret",
+      database: process.env.DB_NAME ?? "postgres",
+      synchronize: true,
       logging: false,
+      entities: [__dirname + "/../**/*.model.{ts,js}"],
+      migrations: [__dirname + "/migrations/*.{ts,js}"],
     });
-  }
-
-  public static async connect(): Promise<void> {
-    try {
-      await PostgresqlService.getInstance().sequelize.sync();
-      console.log("Database synced");
-    } catch (error) {
-      console.error("Error syncing database:", error);
-    }
+    this.connect();
   }
 
   public static getInstance(): PostgresqlService {
@@ -33,7 +28,16 @@ export class PostgresqlService {
     return PostgresqlService.instance;
   }
 
-  public getSequelize(): Sequelize {
-    return this.sequelize;
+  private connect = async (): Promise<void> => {
+    try {
+      await this.dataSource.initialize();
+      console.log("Connected to PostgreSQL");
+    } catch (error) {
+      console.error("Failed to connect to PostgreSQL: ", error);
+    }
+  };
+
+  public getDataSource(): DataSource {
+    return this.dataSource;
   }
 }

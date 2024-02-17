@@ -1,22 +1,50 @@
-import { Router } from "express";
+import { BaseRouter } from "../shared/base.router";
+import { asyncErrorWrapper } from "../shared/async-error-wrapper";
 import { AuthController } from "./auth.controller";
 
-const router = Router();
+export class AuthRouter extends BaseRouter {
+  private static instance: AuthRouter;
+  private readonly authController: AuthController;
 
-// router.post("/login/credentials", AuthController.loginUserWithCredentials);
+  private constructor() {
+    super();
+    this.authController = AuthController.getInstance();
 
-router.post("/forgot-password", AuthController.forgotPassword);
+    this.router.post(
+      "/forgot-password",
+      asyncErrorWrapper(this.authController.forgotPassword)
+    );
+    this.router.get(
+      "/verify-token-password",
+      asyncErrorWrapper(this.authController.verifyTokenPassword)
+    );
+    this.router.post(
+      "/reset-password",
+      asyncErrorWrapper(this.authController.resetPassword)
+    );
+    this.router.post(
+      "/login",
+      asyncErrorWrapper(this.authController.passwordLogin)
+    );
+    this.router.post(
+      "/register",
+      asyncErrorWrapper(this.authController.registerUser)
+    );
+    this.router.post(
+      "/login/google",
+      asyncErrorWrapper(this.authController.googleLogin)
+    );
+    this.router.post(
+      "/refresh-token",
+      asyncErrorWrapper(this.authController.refreshToken)
+    );
+  }
 
-router.get("/verify-token-password", AuthController.verifyTokenPassword);
+  public static getInstance(): AuthRouter {
+    if (!AuthRouter.instance) {
+      AuthRouter.instance = new AuthRouter();
+    }
 
-router.post("/reset-password", AuthController.resetPassword);
-
-router.post("/login", AuthController.loginUser);
-
-router.post("/register", AuthController.registerUser);
-
-router.post("/login/google", AuthController.loginUserWithGoogle);
-
-router.post("/refresh-token", AuthController.refreshToken);
-
-export default router;
+    return AuthRouter.instance;
+  }
+}

@@ -1,181 +1,124 @@
-import { Request, Response } from 'express';
-import { userService } from './user.service';
-import { UploadService } from '../upload/upload.service';
+import { Request, Response } from "express";
+import { UserService } from "./user.service";
+import { QueryUserDto } from "./dto/query-user.dto";
+import { CreateUserDto } from "./dto/create-user.dto";
+import { UpdateUserDto } from "./dto/update-user.dto";
+import { UpdatePasswordDto } from "./dto/update-password.dto";
+import { BadRequestException } from "../shared/exception/http4xx.exception";
 
-export const UserController = {
-  // Get all users
-  async getUsers(req: Request, res: Response): Promise<void> {
-    try {
-      const users = await userService.getUsers();
-      res.json(users);
-    } catch (error) {
-      res.status(500).json({ error: error });
+export class UserController {
+  private static instance: UserController;
+  private readonly userService: UserService;
+
+  private constructor() {
+    this.userService = UserService.getInstance();
+  }
+
+  static getInstance(): UserController {
+    if (!UserController.instance) {
+      UserController.instance = new UserController();
     }
-  },
+
+    return UserController.instance;
+  }
+
+  // Get all users
+  getUsers = async (
+    req: Request<never, never, never, QueryUserDto, never>,
+    res: Response
+  ): Promise<void> => {
+    res.json(await this.userService.getUsers(req.query));
+  };
 
   // Get user by id
-  async getUserById(req: Request, res: Response): Promise<void> {
-    try {
-      const user = await userService.getUserById(req.params.id);
-      res.json(user);
-    } catch (error) {
-      res.status(500).json({ error: error });
-    }
-  },
-
-  // Get user by email
-  async getUserByEmail(req: Request, res: Response): Promise<void> {
-    try {
-      const user = await userService.getUserByEmail(req.params.email);
-      res.json(user);
-    } catch (error) {
-      res.status(500).json({ error: error });
-    }
-  },
-
-  // Get user by googleId
-  async getUserByGoogleId(req: Request, res: Response): Promise<void> {
-    try {
-      const user = await userService.getUserByGoogleId(req.params.googleId);
-      if (!user) {
-        res.json(null);
-      } else {
-        res.json(user);
-      }
-    } catch (error) {
-      res.status(500).json({ error: error });
-    }
-  },
+  getUserById = async (
+    req: Request<{ id: string }, never, never, never, never>,
+    res: Response
+  ): Promise<void> => {
+    const user = await this.userService.getUserById(req.params.id);
+    res.json(user);
+  };
 
   // Create user
-  async createUser(req: Request, res: Response): Promise<void> {
-    try {
-      const user = await userService.createUser(req.body);
-      res.json(user);
-    } catch (error) {
-      res.status(500).json({ error });
-    }
-  },
+  createUser = async (
+    req: Request<never, never, CreateUserDto, never, never>,
+    res: Response
+  ): Promise<void> => {
+    const user = await this.userService.createUser(req.body);
+    res.status(201).json(user);
+  };
 
   // Update user
-  async updateUser(req: Request, res: Response): Promise<void> {
-    try {
-      await userService.updateUser(req.params.id, req.body);
-      res.json({ message: 'User updated successfully' });
-    } catch (error) {
-      res.status(500).json({ error: error });
-    }
-  },
+  updateUser = async (
+    req: Request<{ id: string }, never, UpdateUserDto, never, never>,
+    res: Response
+  ): Promise<void> => {
+    const response = await this.userService.updateUser(req.params.id, req.body);
+    res.json(response);
+  };
 
   // Delete user
-  async deleteUser(req: Request, res: Response): Promise<void> {
-    try {
-      await userService.deleteUser(req.params.id);
-      res.json({ message: 'User deleted successfully' });
-    } catch (error) {
-      res.status(500).json({ error: error });
-    }
-  },
+  deleteUser = async (
+    req: Request<{ id: string }, never, never, never, never>,
+    res: Response
+  ): Promise<void> => {
+    await this.userService.deleteUser(req.params.id);
+    res.sendStatus(204);
+  };
 
-  // Get User Rooms
-  async getUserRooms(req: Request, res: Response): Promise<void> {
-    try {
-      const user = await userService.getUserRooms(req.params.id);
-      res.json(user);
-    } catch (error) {
-      res.status(500).json({ error: error });
-    }
-  },
-
-  async uploadUserImage(
+  // Upload user image
+  uploadImage = async (
     req: Request<{ id: string }, never, { position: number }, never>,
     res: Response
-  ): Promise<void> {
-    try {
-      const { position } = req.body;
-      const file = req.file;
-      const userId = req.params.id;
+  ): Promise<void> => {
+    const { position } = req.body;
+    const image = req.file;
+    const userId = req.params.id;
 
-      const image = await userService.uploadUserImage(userId, position, file);
-      res.json(image);
-    } catch (error) {
-      res.status(500).json({ error });
+    if (!image) {
+      throw new BadRequestException("Image not found");
     }
-  },
 
-  async getUserProfile(req: Request, res: Response): Promise<void> {
-    try {
-      const user = await userService.getUserProfile(req.params.id);
-      res.json(user);
-    } catch (error) {
-      res.status(500).json({ error: error });
-    }
-  },
+    const userImage = await this.userService.uploadImage(userId, {
+      position,
+      image,
+    });
+    res.json(userImage);
+  };
 
-  async deleteUserProfileImage(req: Request, res: Response): Promise<void> {
-    try {
-      const { id, position } = req.params;
-      const user = await userService.deleteUserProfileImage(
-        id,
-        parseInt(position)
-      );
-      res.json(user);
-    } catch (error) {
-      res.status(500).json({ error: error });
-    }
-  },
+  // Delete user image
+  deleteImage = async (
+    req: Request<{ id: string; position: number }, never, never, never, never>,
+    res: Response
+  ): Promise<void> => {
+    const { id, position } = req.params;
+    await this.userService.deleteImage(id, position);
+    res.sendStatus(204);
+  };
 
-  async reorderUserProfileImages(req: Request, res: Response): Promise<void> {
-    try {
-      const { id } = req.params;
-      const { newImagesOrder } = req.body;
-      const user = await userService.reorderUserProfileImages(
-        id,
-        newImagesOrder
-      );
-      res.json(user);
-    } catch (error) {
-      res.status(500).json({ error: error });
-    }
-  },
+  // Reorder user images
+  reorderImages = async (
+    req: Request<
+      { id: string },
+      never,
+      { newImagesOrder: number[] },
+      never,
+      never
+    >,
+    res: Response
+  ): Promise<void> => {
+    const user = await this.userService.reorderImages(req.params.id, {
+      order: req.body.newImagesOrder,
+    });
+    res.json(user);
+  };
 
-  async updateUserPassword(req: Request, res: Response): Promise<void> {
-    try {
-      const { id } = req.params;
-      const { oldPassword, newPassword } = req.body;
-      await userService.updateUserPassword(oldPassword, newPassword, id);
-      res.json({ message: 'Password updated successfully' });
-    } catch (error) {
-      res.status(500).json({ error: 'Error colin' });
-    }
-  },
-
-  async blockUser(req: Request, res: Response): Promise<void> {
-    try {
-      const { id, blockUserId } = req.params;
-      await userService.blockUser(id, blockUserId);
-      res.json({ message: 'User blocked successfully' });
-    } catch (error) {
-      res.status(500).json({ error: error });
-    }
-  },
-
-  async unblockUser(req: Request, res: Response): Promise<void> {
-    try {
-      const { id, blockUserId } = req.params;
-      await userService.unblockUser(id, blockUserId);
-      res.json({ message: 'User unblocked successfully' });
-    } catch (error) {
-      res.status(500).json({ error: error });
-    }
-  },
-
-  async getBlockedUsers(req: Request, res: Response): Promise<void> {
-    try {
-      const users = await userService.getBlockedUsers(req.params.id);
-      res.json(users);
-    } catch (error) {
-      res.status(500).json({ error: error });
-    }
-  },
-};
+  // Update user password
+  updateUserPassword = async (
+    req: Request<{ id: string }, never, UpdatePasswordDto, never, never>,
+    res: Response
+  ): Promise<void> => {
+    await this.userService.updateUserPassword(req.params.id, req.body);
+    res.sendStatus(204);
+  };
+}

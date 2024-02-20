@@ -1,29 +1,29 @@
-import { Router } from "express";
+import { BaseRouter } from "../shared/base.router";
+import { asyncErrorWrapper } from "../shared/async-error-wrapper";
 import { RoomController } from "./room.controller";
 
-const router = Router();
+export class RoomRouter extends BaseRouter {
+  private static instance: RoomRouter;
+  private readonly roomController: RoomController;
 
-// GET /api/rooms
-router.get("/", RoomController.getRooms);
+  private constructor() {
+    super();
+    this.roomController = RoomController.getInstance();
 
-// GET /api/rooms/:id
-router.get("/:id", RoomController.getRoomById);
+    this.router.get("/", asyncErrorWrapper(this.roomController.getRooms));
+    this.router.get("/:id", asyncErrorWrapper(this.roomController.getRoomById));
+    this.router.post("/", asyncErrorWrapper(this.roomController.createRoom));
+    this.router.patch(
+      "/:id",
+      asyncErrorWrapper(this.roomController.updateRoom)
+    );
+  }
 
-// GET /api/rooms/:id/messages
-router.get("/:id/messages", RoomController.getMessagesByRoomId);
+  public static getInstance(): RoomRouter {
+    if (!RoomRouter.instance) {
+      RoomRouter.instance = new RoomRouter();
+    }
 
-// POST /api/rooms
-router.post("/", RoomController.createRoom);
-
-// PUT /api/rooms/:id
-router.put("/:id", RoomController.updateRoom);
-
-router.put(
-  "/:id/messages/users/:userId/read",
-  RoomController.updateMessageIsRead
-);
-
-// GET /api/rooms/:userId1/:userId2
-router.get("/:userId1/:userId2", RoomController.getRoomByUsers);
-
-export default router;
+    return RoomRouter.instance;
+  }
+}

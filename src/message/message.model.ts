@@ -1,55 +1,46 @@
 import {
-  BelongsTo,
   Column,
-  DataType,
-  ForeignKey,
-  Model,
-  PrimaryKey,
-  Table,
-} from "sequelize-typescript";
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from "typeorm";
 import User from "../user/user.model";
 import Room from "../room/room.model";
 
-@Table
-export default class Message extends Model<Message> {
-  @PrimaryKey
-  @Column({
-    type: DataType.UUID,
-    allowNull: false,
-    defaultValue: DataType.UUIDV4,
+@Entity()
+export default class Message {
+  @PrimaryGeneratedColumn("uuid")
+  id: string;
+
+  @Column("varchar", {
+    nullable: false,
   })
-  declare id: string;
+  content: string;
 
-  @Column({
-    type: DataType.STRING,
-    allowNull: false,
+  @Column("boolean", {
+    nullable: false,
+    default: false,
   })
-  content!: string;
+  isSeen: boolean;
 
-  @Column({
-    type: DataType.BOOLEAN,
-    allowNull: false,
-    defaultValue: false,
+  @ManyToOne(() => User, (user) => user.messages, {
+    onUpdate: "CASCADE",
   })
-  isSeen!: boolean;
+  @JoinColumn({ name: "senderId" })
+  sender?: User;
 
-  @ForeignKey(() => User)
-  @Column({
-    type: DataType.UUID,
-    allowNull: false,
+  @ManyToOne(() => Room, (room) => room.messages, {
+    onUpdate: "CASCADE",
   })
-  senderId!: string;
+  @JoinColumn({ name: "roomId" })
+  room?: Room;
 
-  @ForeignKey(() => Room)
-  @Column({
-    type: DataType.UUID,
-    allowNull: false,
-  })
-  roomId!: string;
+  @CreateDateColumn({ type: "timestamptz" })
+  createdAt: Date;
 
-  @BelongsTo(() => Room)
-  room!: Room;
-
-  @BelongsTo(() => User)
-  sender!: User;
+  @UpdateDateColumn({ type: "timestamptz" })
+  updatedAt: Date;
 }

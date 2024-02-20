@@ -1,81 +1,58 @@
 import { Request, Response } from "express";
-import { roomService } from "./room.service";
+import { RoomService } from "./room.service";
+import { QueryRoomDto } from "./dto/query-room.dto";
+import { CreateRoomDto } from "./dto/create-room.dto";
+import { UpdateRoomDto } from "./dto/update-room.dto";
 
-export const RoomController = {
-  // Get all rooms
-  async getRooms(req: Request, res: Response): Promise<void> {
-    try {
-      const rooms = await roomService.getRooms();
-      res.json(rooms);
-    } catch (error) {
-      res.status(500).json({ error: error });
+export class RoomController {
+  private static instance: RoomController;
+  private readonly roomService: RoomService;
+
+  private constructor() {
+    this.roomService = RoomService.getInstance();
+  }
+
+  public static getInstance(): RoomController {
+    if (!RoomController.instance) {
+      RoomController.instance = new RoomController();
     }
-  },
+
+    return RoomController.instance;
+  }
+
+  // Get all rooms
+  getRooms = async (
+    req: Request<never, never, never, QueryRoomDto, never>,
+    res: Response
+  ): Promise<void> => {
+    const rooms = await this.roomService.getRooms(req.query);
+    res.json(rooms);
+  };
 
   // Get room by id
-  async getRoomById(req: Request, res: Response): Promise<void> {
-    try {
-      const room = await roomService.getRoomById(req.params.id);
-      res.json(room);
-    } catch (error) {
-      res.status(500).json({ error: error });
-    }
-  },
-
-  async getRoomByUsers(req: Request, res: Response): Promise<void> {
-    try {
-      const room = await roomService.getRoomByUsers(
-        req.params.userId1,
-        req.params.userId2
-      );
-      res.json(room);
-    } catch (error) {
-      res.status(500).json({ error: error });
-    }
-  },
+  getRoomById = async (
+    req: Request<{ id: string }, never, never, never, never>,
+    res: Response
+  ): Promise<void> => {
+    const room = await this.roomService.getRoomById(req.params.id);
+    res.json(room);
+  };
 
   // Create room
-  async createRoom(req: Request, res: Response): Promise<void> {
-    try {
-      const room = await roomService.createRoom(req.body);
-      res.json(room);
-    } catch (error) {
-      res.status(500).json({ error: error });
-    }
-  },
+  createRoom = async (
+    req: Request<never, never, CreateRoomDto, never, never>,
+    res: Response
+  ): Promise<void> => {
+    const room = await this.roomService.createRoom(req.body);
+    res.status(201).json(room);
+  };
 
   // Update room
-  async updateRoom(req: Request, res: Response): Promise<void> {
-    try {
-      await roomService.updateRoom(req.params.id, req.body);
-      res.json({ message: "Room updated successfully" });
-    } catch (error) {
-      res.status(500).json({ error: error });
-    }
-  },
-
-  async updateMessageIsRead(req: Request, res: Response): Promise<void> {
-    try {
-      await roomService.setMessagesIsReadByRoomId(
-        req.params.id,
-        req.params.userId
-      );
-      res.json({ message: "Room updated successfully" });
-    } catch (error) {
-      res.status(500).json({ error: error });
-    }
-  },
-
-  async getMessagesByRoomId(req: Request, res: Response): Promise<void> {
-    try {
-      const messages = await roomService.getMessagesByRoomId(
-        req.params.id,
-        req.query.limit as string,
-        req.query.offset as string
-      );
-      res.json(messages);
-    } catch (error) {
-      res.status(500).json({ error: error });
-    }
-  },
-};
+  updateRoom = async (
+    req: Request<{ id: string }, never, UpdateRoomDto, never, never>,
+    res: Response
+  ): Promise<void> => {
+    const response = await this.roomService.updateRoom(req.params.id, req.body);
+    res.json(response);
+  };
+}

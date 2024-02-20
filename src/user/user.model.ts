@@ -1,154 +1,129 @@
+import UserImage from "./user-image.model";
+import Room from "../room/room.model";
+import Message from "../message/message.model";
+import UserLanguage from "./user-language.model";
+import ResetPassword from "../auth/reset-password.model";
+import RefreshTokens from "../auth/refresh-token.model";
 import {
-  Model,
-  Table,
   Column,
-  DataType,
-  PrimaryKey,
-  HasMany,
-  BelongsToMany,
-  DefaultScope,
-  Scopes,
-  Unique,
-} from 'sequelize-typescript';
-import UserImage from './user-image.model';
-import Room from '../room/room.model';
-import UserRoom from '../room/user-room.model';
-import Message from '../message/message.model';
-import UserLanguage from './user-language.model';
-import Sequelize from 'sequelize/types/sequelize';
-import ResetPassword from '../auth/reset-password.model';
-import RefreshTokens from '../auth/refresh-tokens.model';
-import UserBlock from './user-block.model';
+  CreateDateColumn,
+  Entity,
+  JoinTable,
+  ManyToMany,
+  OneToMany,
+  Point,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from "typeorm";
 
-@DefaultScope(() => ({
-  attributes: { exclude: ['password'] },
-}))
-@Scopes(() => ({
-  withPassword: {
-    include: {
-      all: true, // ou spécifiez les attributs individuellement
-    },
-  },
-}))
-@Table
-export default class User extends Model<User> {
-  @PrimaryKey
-  @Column({
-    type: DataType.UUID,
-    defaultValue: DataType.UUIDV4,
-    allowNull: false,
+@Entity()
+export default class User {
+  @PrimaryGeneratedColumn("uuid")
+  id: string;
+
+  @Column("varchar", {
+    nullable: false,
   })
-  declare id: string;
+  name: string;
 
-  @Column({
-    type: DataType.STRING,
-    allowNull: false,
+  @Column("varchar", {
+    nullable: false,
+    unique: true,
   })
-  declare name: string;
+  email: string;
 
-  @Unique
-  @Column({
-    type: DataType.STRING,
-    allowNull: false,
+  @Column("varchar", {
+    nullable: true,
   })
-  declare email: string;
+  password?: string;
 
-  @Column({
-    type: DataType.STRING,
-
-    allowNull: true,
+  @Column("varchar", {
+    nullable: true,
   })
-  declare password: string;
+  googleId?: string;
 
-  @Column({
-    type: DataType.STRING,
-    allowNull: true,
+  @Column("geometry", {
+    spatialFeatureType: "Point",
+    srid: 4326,
+    nullable: true,
   })
-  declare googleId: string;
+  geom?: Point;
 
-  @Column({
-    type: DataType.GEOMETRY('POINT', 4326),
-    allowNull: true,
+  @Column("int8", {
+    nullable: false,
+    default: 0,
   })
-  declare geom: Sequelize['literal'];
-
-  @Column({
-    type: DataType.BIGINT,
-    allowNull: false,
-    defaultValue: 0,
-  })
-  declare points: number;
+  points: number;
 
   // TODO: rename this field to mapImage
-  @Column({
-    type: DataType.STRING,
-    allowNull: true,
+  @Column("varchar", {
+    nullable: true,
   })
-  image: string | undefined | null;
+  image?: string;
 
-  @Column({
-    type: DataType.STRING,
-    allowNull: true,
+  @Column("varchar", {
+    nullable: true,
   })
-  gender: string | undefined;
+  gender?: string;
 
-  @Column({
-    type: DataType.DATE,
-    allowNull: true,
+  @Column("timestamptz", {
+    nullable: true,
   })
-  birthday: Date | undefined;
+  birthday?: Date;
 
-  @Column({
-    type: DataType.STRING,
-    allowNull: true,
+  @Column("varchar", {
+    nullable: true,
   })
-  bio: string | undefined;
+  bio?: string;
 
-  @Column({
-    type: DataType.BOOLEAN,
-    allowNull: false,
-    defaultValue: true,
+  @Column("boolean", {
+    nullable: false,
+    default: true,
   })
-  declare isNewUser: boolean;
+  isNewUser: boolean;
 
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-    defaultValue: 0,
+  @Column("int4", {
+    nullable: false,
+    default: 0,
   })
-  declare connections: string;
+  connections: number;
 
-  @Column({
-    type: DataType.STRING,
-    allowNull: true,
+  @Column("varchar", {
+    nullable: true,
   })
-  declare languageUsed: string;
+  languageUsed?: string;
 
-  @Column({
-    allowNull: true,
-    defaultValue: () => Math.floor(Math.random() * 24) + 1,
+  @Column("int4", {
+    nullable: true,
   })
-  declare avatarNumber: number;
+  avatarNumber?: number;
+
+  @CreateDateColumn({ type: "timestamptz" })
+  createdAt: Date;
+
+  @UpdateDateColumn({ type: "timestamptz" })
+  updatedAt: Date;
 
   // TODO: rename this field to profileImages
-  @HasMany(() => UserImage)
-  userImages!: UserImage[];
+  @OneToMany(() => UserImage, (userImage) => userImage.user)
+  userImages?: UserImage[];
 
-  @HasMany(() => UserBlock, 'blockerUserId')
-  blockedUsers!: UserBlock[];
+  @ManyToMany(() => User, (user) => user.blockedUsers)
+  @JoinTable()
+  blockedUsers?: User[];
 
-  @BelongsToMany(() => Room, () => UserRoom)
-  rooms!: Room[];
+  @ManyToMany(() => Room, (room) => room.members)
+  rooms?: Room[];
 
-  @HasMany(() => Message)
-  messages!: Message[];
+  @OneToMany(() => Message, (message) => message.sender)
+  messages?: Message[];
 
-  @HasMany(() => UserLanguage)
-  userLanguages!: UserLanguage[];
+  @OneToMany(() => UserLanguage, (userLanguage) => userLanguage.user)
+  userLanguages?: UserLanguage[];
 
-  @HasMany(() => ResetPassword)
-  resetPasswords!: ResetPassword[];
+  @OneToMany(() => ResetPassword, (resetPassword) => resetPassword.user)
+  resetPasswords?: ResetPassword[];
 
-  @HasMany(() => RefreshTokens)
-  refreshTokens!: RefreshTokens[];
+  @OneToMany(() => RefreshTokens, (refreshTokens) => refreshTokens.user)
+  refreshTokens?: RefreshTokens[];
 }

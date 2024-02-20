@@ -1,41 +1,42 @@
 import { Client } from "minio";
 
-export class UploadService {
+export class MinioService {
   private minioClient: Client;
-  private static instance: UploadService;
+  private static instance: MinioService;
 
   private constructor() {
-    this.minioClient = new Client({
-      endPoint: process.env.MINIO_HOST || "localhost",
-      port: Number(process.env.MINIO_PORT) || 9000,
-      accessKey: process.env.MINIO_USER || "minio",
-      secretKey: process.env.MINIO_PASSWORD || "secret",
-      useSSL: false,
-    });
+    this.connect();
   }
 
-  public static async connect(): Promise<void> {
+  private async connect(): Promise<void> {
     try {
-      await new Promise((resolve, reject) => {
+      this.minioClient = await new Promise((resolve, reject) => {
         try {
-          UploadService.getInstance();
-          resolve(undefined);
+          resolve(
+            new Client({
+              endPoint: process.env.MINIO_HOST ?? "localhost",
+              port: Number(process.env.MINIO_PORT) || 9000,
+              accessKey: process.env.MINIO_USER ?? "minio",
+              secretKey: process.env.MINIO_PASSWORD ?? "secret",
+              useSSL: false,
+            })
+          );
         } catch (error) {
-          reject(new Error(error));
+          reject(error);
         }
       });
-      console.log("MinIO connected");
+      console.log("Connected to MinIO");
     } catch (error) {
-      console.error("Error connecting to MinIO:", error);
+      console.error("Error creating MinIO client: ", error);
     }
   }
 
-  public static getInstance(): UploadService {
-    if (!UploadService.instance) {
-      UploadService.instance = new UploadService();
+  public static getInstance(): MinioService {
+    if (!MinioService.instance) {
+      MinioService.instance = new MinioService();
     }
 
-    return UploadService.instance;
+    return MinioService.instance;
   }
 
   public async createBucket(bucketName: string): Promise<void> {

@@ -2,293 +2,263 @@ import bcrypt from "bcrypt";
 import User from "../user/user.model";
 import crypto from "crypto";
 import ResetPassword from "./reset-password.model";
-import { mailjetConfig } from "../mailjetConfig";
 import jwt from "jsonwebtoken";
-import { userService } from "../user/user.service";
 import { OAuth2Client } from "google-auth-library";
-import RefreshTokens from "./refresh-tokens.model";
+import RefreshTokens from "./refresh-token.model";
+import { Repository } from "typeorm";
+import { PostgresqlService } from "../postgresql/postgresql.service";
+import { RegisterDto } from "./dto/register.dto";
+import { PasswordLoginDto } from "./dto/password-login.dto";
+import { ForgotPasswordDto } from "./dto/forgot-password.dto";
+import { GoogleLoginDto } from "./dto/google-login.dto";
+import { RefreshTokenDto } from "./dto/refresh-token.dto";
+import { UserService } from "../user/user.service";
+import { ResetPasswordDto } from "./dto/reset-password.dto";
+import { VerifyTokenDto } from "./dto/verify-token.dto";
+import { MailjetService } from "../mailjet/mailjet.service";
+import { TokenSetDto } from "./dto/token-set.dto";
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from "../shared/exception/http4xx.exception";
+import {
+  BadGatewayException,
+  InternalServerErrorException,
+} from "../shared/exception/http5xx.exception";
 
-export const authService = {
-  // Login user with Credentials
-  async loginUserWithCredentials(credentials: any) {
-    try {
-      const { email, password } = credentials;
-      const user = await User.scope("withPassword").findOne({
-        where: {
-          email: email,
-        },
-      });
+export class AuthService {
+  private static instance: AuthService;
+  private readonly refreshTokenRepository: Repository<RefreshTokens>;
+  private readonly resetPasswordRepository: Repository<ResetPassword>;
+  private readonly userService: UserService;
+  private readonly mailjetService: MailjetService;
+  private readonly googleClient: OAuth2Client;
 
-      if (!user) {
-        console.error("User not found for email:", email);
-        throw new Error("Incorrect credentials");
-      }
+  private constructor() {
+    const dataSource = PostgresqlService.getInstance().getDataSource();
 
-      const isPasswordValid = await bcrypt.compare(password, user.password);
-      if (!isPasswordValid) {
-        console.error("Incorrect password for user:", user.id);
-        throw new Error("Incorrect credentials");
-      }
+    this.refreshTokenRepository = dataSource.getRepository(RefreshTokens);
+    this.resetPasswordRepository = dataSource.getRepository(ResetPassword);
 
-      const token = generateAccessToken(user);
-      const refreshToken = generateRefreshToken(user);
+    this.userService = UserService.getInstance();
+    this.mailjetService = MailjetService.getInstance();
+    this.googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+  }
 
-      await storeRefreshTokenInDB(user.id, refreshToken);
-
-      // return token;
-      return { accessToken: token, refreshToken: refreshToken };
-    } catch (error) {
-      console.error("Error in loginUserWithCredentials:", error);
-      throw error; // Propagate the error
+  static getInstance(): AuthService {
+    if (!AuthService.instance) {
+      AuthService.instance = new AuthService();
     }
-  },
 
-  async forgotPassword(email: string) {
-    try {
-      const user = await User.findOne({
-        where: {
-          email: email,
-        },
-      });
+    return AuthService.instance;
+  }
 
-      if (!user) {
-        console.error("User not found for email:", email);
-
-        return {
-          success: false,
-          message: "Aucun utilisateur n'a été trouvé avec cette adresse email",
-        };
-      }
-
-      const resetToken = crypto.randomBytes(32).toString("hex");
-
-      await ResetPassword.create({
-        userId: user.id,
-        token: resetToken,
-      } as ResetPassword);
-
-      const urlToResetPassword = `${process.env.FRONTEND_URL}/auth/reset-password?token=${resetToken}`;
-
-      mailjetConfig.post("send", { version: "v3.1" }).request({
-        Messages: [
-          {
-            From: {
-              Email: "contact@penpalmap.com",
-              Name: "Penpalmap",
-            },
-            To: [
-              {
-                Email: email,
-                Name: user.name,
-              },
-            ],
-            Subject: "Réinitialisation de votre mot de passe",
-            TextPart: `Bonjour ${user.name},\n\nVous avez demandé la réinitialisation de votre mot de passe. Veuillez cliquer sur le lien ci-dessous pour le réinitialiser.\n\n${urlToResetPassword}`,
-            HTMLPart: `<h3>Bonjour ${user.name},</h3><p>Vous avez demandé la réinitialisation de votre mot de passe. Veuillez cliquer sur le lien ci-dessous pour le réinitialiser.</p><p><a href=${urlToResetPassword}>Réinitialiser mon mot de passe</a></p>`,
-            CustomID: "AppGettingStartedTest",
-          },
-        ],
-      });
-
-      return {
-        success: true,
-        message:
-          "Un e-mail a été envoyé avec les instructions pour réinitialiser le mot de passe.",
-      };
-    } catch (error) {
-      console.error("Error in forgotPassword:", error);
-      throw error; // Propagate the error
+  passwordLogin = async (dto: PasswordLoginDto): Promise<TokenSetDto> => {
+    const user = await this.userService.getUserByLoginRaw(dto.email);
+    if (!user?.password) {
+      throw new BadRequestException("Cannot login with password");
     }
-  },
 
-  async verifyTokenResetPassword(token: string) {
-    try {
-      const resetToken = await ResetPassword.findOne({
-        where: { token },
-      });
-
-      if (!resetToken) {
-        return { success: false, message: "Invalid token" };
-      }
-
-      if (resetToken.expiresAt.getTime() < Date.now()) {
-        return { success: false, message: "Token has expired" };
-      }
-
-      return { message: "Password reset successful", success: true };
-    } catch (error) {
-      console.error(error);
-      return {
-        success: false,
-        message: "An error occurred while resetting the password",
-      };
+    if (!(await bcrypt.compare(dto.password, user.password))) {
+      throw new ForbiddenException("Incorrect credentials");
     }
-  },
 
-  async resetPassword(token: string, password: string) {
-    try {
-      const resetToken = await ResetPassword.findOne({
-        where: { token },
-      });
+    const accessToken = AuthService.generateAccessToken(user);
+    const refreshToken = AuthService.generateRefreshToken(user);
 
-      const user = await User.findOne({
-        where: { id: resetToken?.userId },
-      });
+    await this.storeRefreshTokenInDB(user, refreshToken);
+    return { accessToken, refreshToken };
+  };
 
-      if (!user) {
-        return { success: false, message: "User not found" };
-      }
-
-      user.password = await bcrypt.hash(password, 10);
-      await user.save();
-
-      await resetToken?.destroy();
-
-      return { message: "Password reset successful", success: true };
-    } catch (error) {
-      console.error(error);
-      return {
-        success: false,
-        message: "An error occurred while resetting the password",
-      };
+  forgotPassword = async (dto: ForgotPasswordDto): Promise<void> => {
+    const user = await this.userService.getUserByLoginRaw(dto.email);
+    if (!user) {
+      throw new NotFoundException("User not found");
     }
-  },
 
-  async loginUser(credentials: any) {
-    const token = this.loginUserWithCredentials(credentials);
+    const resetToken = crypto.randomBytes(32).toString("hex");
 
-    return token;
-  },
-
-  async registerUser(user: User) {
-    try {
-      const userCreated = await userService.createUser(user);
-
-      const token = generateAccessToken(userCreated);
-      const refreshToken = generateRefreshToken(userCreated);
-
-      await storeRefreshTokenInDB(userCreated.id, refreshToken);
-
-      // return token;
-      return { accessToken: token, refreshToken: refreshToken };
-    } catch (error) {
-      console.error("Error in registerUser:", error);
-      throw error; // Propagate the error
-    }
-  },
-
-  async loginUserWithGoogle(tokenGoogle: string) {
-    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
-    const ticket = await client.verifyIdToken({
-      idToken: tokenGoogle,
-      audience: process.env.GOOGLE_CLIENT_ID,
+    await this.resetPasswordRepository.save({
+      userId: user.id,
+      token: resetToken,
+      expiresAt: new Date(Date.now() + 1000 * 60 * 60),
+      user,
     });
 
-    const payload = ticket.getPayload();
+    const urlToResetPassword = `${process.env.FRONTEND_URL}/auth/reset-password?token=${resetToken}`;
 
-    if (!payload) {
-      throw new Error("Error getting payload");
+    await this.mailjetService.sendEmail({
+      to: {
+        email: user.email,
+        name: user.name,
+      },
+      subject: "Réinitialisation de votre mot de passe",
+      text: `Bonjour ${user.name},\n\nVous avez demandé la réinitialisation de votre mot de passe. Veuillez cliquer sur le lien ci-dessous pour le réinitialiser.\n\n${urlToResetPassword}`,
+      html: `<h3>Bonjour ${user.name},</h3><p>Vous avez demandé la réinitialisation de votre mot de passe. Veuillez cliquer sur le lien ci-dessous pour le réinitialiser.</p><p><a href=${urlToResetPassword}>Réinitialiser mon mot de passe</a></p>`,
+    });
+  };
+
+  verifyTokenResetPassword = async (dto: VerifyTokenDto): Promise<void> => {
+    const resetToken = await this.resetPasswordRepository.findOne({
+      where: { token: dto.token },
+    });
+
+    if (!resetToken) {
+      throw new ForbiddenException("Token not found");
     }
+    if (resetToken.expiresAt.getTime() < Date.now()) {
+      throw new ForbiddenException("Token expired");
+    }
+  };
 
-    const { email, sub, name } = payload;
-
-    // if the user exists
-    const user = await User.findOne({
-      where: {
-        googleId: sub,
-        email: email,
+  resetPassword = async (dto: ResetPasswordDto): Promise<void> => {
+    const resetToken = await this.resetPasswordRepository.findOne({
+      where: { token: dto.token },
+      relations: {
+        user: true,
       },
     });
 
+    if (!resetToken?.user) {
+      throw new ForbiddenException("Token not found");
+    }
+    if (resetToken.expiresAt.getTime() < Date.now()) {
+      throw new ForbiddenException("Token expired");
+    }
+
+    await this.userService.updatePasswordRaw(resetToken.user.id, dto.password);
+    await this.resetPasswordRepository.remove(resetToken);
+  };
+
+  registerUser = async (payload: RegisterDto): Promise<TokenSetDto> => {
+    if (payload.password !== payload.passwordConfirmation) {
+      throw new BadRequestException("Passwords do not match");
+    }
+    const userCreated = await this.userService.createUserRaw({
+      name: payload.name,
+      email: payload.email,
+      password: payload.password,
+    });
+
+    const accessToken = AuthService.generateAccessToken(userCreated);
+    const refreshToken = AuthService.generateRefreshToken(userCreated);
+
+    await this.storeRefreshTokenInDB(userCreated, refreshToken);
+    return { accessToken, refreshToken };
+  };
+
+  googleLogin = async (dto: GoogleLoginDto): Promise<TokenSetDto> => {
+    const ticket = await this.googleClient.verifyIdToken({
+      idToken: dto.token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+
+    if (!payload) {
+      throw new BadRequestException("Invalid token");
+    }
+
+    // if the user exists
+    const user = await this.userService.getUserByLoginRaw(
+      payload.email,
+      payload.sub
+    );
+
     if (user) {
-      const token = generateAccessToken(user);
-      const refreshToken = generateRefreshToken(user);
-
-      await storeRefreshTokenInDB(user.id, refreshToken);
-
-      // return token;
-      return { accessToken: token, refreshToken: refreshToken };
-    } else {
-      const firstname = name?.split(" ")[0];
-
-      const newUser = await userService.createUser({
-        name: firstname,
-        email: payload.email,
-        googleId: payload.sub,
-      } as User);
-
-      const token = generateAccessToken(newUser);
-      const refreshToken = generateRefreshToken(newUser);
-
-      await storeRefreshTokenInDB(newUser.id, refreshToken);
-
-      // return token;
+      const token = AuthService.generateAccessToken(user);
+      const refreshToken = AuthService.generateRefreshToken(user);
+      await this.storeRefreshTokenInDB(user, refreshToken);
       return { accessToken: token, refreshToken: refreshToken };
     }
-  },
 
-  async refreshToken(refreshTokenFromClient) {
-    const token = await refreshToken(refreshTokenFromClient);
+    const firstname = payload.name?.split(" ")[0];
 
-    return token;
-  },
-};
+    if (!firstname) {
+      throw new BadGatewayException("Error getting firstname");
+    }
+    if (!payload.email) {
+      throw new BadGatewayException("Error getting email");
+    }
 
-const generateAccessToken = (user) => {
-  return jwt.sign({ userId: user.id }, process.env.ACCESS_TOKEN_SECRET, {
-    expiresIn: "1h",
-  });
-};
+    const newUser = await this.userService.createUserRaw({
+      name: firstname,
+      email: payload.email,
+      googleId: payload.sub,
+    });
 
-const generateRefreshToken = (user) => {
-  return jwt.sign({ userId: user.id }, process.env.REFRESH_TOKEN_SECRET, {
-    expiresIn: "7d",
-  });
-};
+    const accessToken = AuthService.generateAccessToken(newUser);
+    const refreshToken = AuthService.generateRefreshToken(newUser);
 
-const storeRefreshTokenInDB = async (userId, refreshToken) => {
-  await RefreshTokens.create({ userId, token: refreshToken });
-};
+    await this.storeRefreshTokenInDB(newUser, refreshToken);
+    return { accessToken, refreshToken };
+  };
 
-const refreshToken = async (refreshTokenFromClient) => {
-  return new Promise((resolve, reject) => {
+  refreshToken = async (dto: RefreshTokenDto): Promise<TokenSetDto> => {
+    if (!dto.refreshToken) {
+      throw new BadRequestException("Invalid refreshToken");
+    }
+
     try {
-      if (!refreshTokenFromClient) {
-        resolve(null);
-      }
-
       jwt.verify(
-        refreshTokenFromClient,
-        process.env.REFRESH_TOKEN_SECRET,
-        async (err, decoded) => {
-          if (err) {
-            resolve(null);
-          }
-
-          // Vérifier si le refreshToken est stocké dans la base de données
-          const storedToken = await RefreshTokens.findOne({
-            where: { token: refreshTokenFromClient },
-          });
-
-          if (!storedToken) {
-            resolve(null);
-          }
-
-          // Trouver l'utilisateur associé au refreshToken
-          const user = await User.findByPk(decoded.userId);
-          if (!user) {
-            resolve(null);
-          }
-
-          const token = generateAccessToken(user?.dataValues);
-
-          resolve(token);
-        }
+        dto.refreshToken,
+        process.env.REFRESH_TOKEN_SECRET ?? "secret"
       );
     } catch (error) {
-      console.error("Error in refreshToken function:", error);
-      reject(error);
+      throw new ForbiddenException("Invalid refreshToken");
     }
-  });
-};
+
+    const storedToken = await this.refreshTokenRepository.findOne({
+      where: { token: dto.refreshToken },
+      relations: {
+        user: true,
+      },
+    });
+
+    if (!storedToken?.user) {
+      throw new InternalServerErrorException("No user found for refreshToken");
+    }
+
+    const accessToken = AuthService.generateAccessToken(storedToken.user);
+    const refreshToken = AuthService.generateRefreshToken(storedToken.user);
+
+    await Promise.all([
+      this.deleteRefreshTokenInDB(dto.refreshToken),
+      this.storeRefreshTokenInDB(storedToken.user, refreshToken),
+    ]);
+    return { accessToken, refreshToken };
+  };
+
+  private storeRefreshTokenInDB = async (
+    user: User,
+    refreshToken: string
+  ): Promise<void> => {
+    await this.refreshTokenRepository.save({ user, token: refreshToken });
+  };
+
+  private deleteRefreshTokenInDB = async (
+    refreshToken: string
+  ): Promise<void> => {
+    await this.refreshTokenRepository.delete({ token: refreshToken });
+  };
+
+  private static generateAccessToken(user: User): string {
+    return jwt.sign(
+      { userId: user.id },
+      process.env.ACCESS_TOKEN_SECRET ?? "secret",
+      {
+        expiresIn: process.env.ACCESS_TOKEN_EXPIRATION ?? "365d",
+      }
+    );
+  }
+
+  private static generateRefreshToken(user: User): string {
+    return jwt.sign(
+      { userId: user.id },
+      process.env.REFRESH_TOKEN_SECRET ?? "secret",
+      {
+        expiresIn: process.env.REFRESH_TOKEN_EXPIRATION ?? "7y",
+      }
+    );
+  }
+}

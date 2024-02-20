@@ -1,98 +1,86 @@
 import { Request, Response } from "express";
-import { authService } from "./auth.service";
-import { cp } from "fs";
+import { AuthService } from "./auth.service";
+import { RegisterDto } from "./dto/register.dto";
+import { PasswordLoginDto } from "./dto/password-login.dto";
+import { GoogleLoginDto } from "./dto/google-login.dto";
+import { ResetPasswordDto } from "./dto/reset-password.dto";
+import { RefreshTokenDto } from "./dto/refresh-token.dto";
+import { VerifyTokenDto } from "./dto/verify-token.dto";
+import { ForgotPasswordDto } from "./dto/forgot-password.dto";
 
-export const AuthController = {
-  async forgotPassword(req: Request, res: Response) {
-    try {
-      const response = await authService.forgotPassword(req.body.email);
-      res.json(response);
-    } catch (error) {
-      res.status(500).json({ message: "Une erreur s'est produite..." });
+export class AuthController {
+  private static instance: AuthController;
+  private readonly authService: AuthService;
+
+  private constructor() {
+    this.authService = AuthService.getInstance();
+  }
+
+  static getInstance(): AuthController {
+    if (!AuthController.instance) {
+      AuthController.instance = new AuthController();
     }
-  },
 
-  async verifyTokenPassword(req: Request, res: Response) {
-    try {
-      const { token } = req.query;
+    return AuthController.instance;
+  }
 
-      const response = await authService.verifyTokenResetPassword(
-        token as string
-      );
-      res.json(response);
-    } catch (error) {
-      res.status(500).json({ message: "Une erreur s'est produite..." });
-    }
-  },
+  forgotPassword = async (
+    req: Request<never, never, ForgotPasswordDto, never, never>,
+    res: Response
+  ) => {
+    await this.authService.forgotPassword(req.body);
+    res.sendStatus(204);
+  };
 
-  async resetPassword(req: Request, res: Response) {
-    try {
-      const { token, password } = req.body;
+  verifyTokenPassword = async (
+    req: Request<never, never, never, VerifyTokenDto, never>,
+    res: Response
+  ) => {
+    await this.authService.verifyTokenResetPassword(req.query);
+    res.sendStatus(204);
+  };
 
-      const response = await authService.resetPassword(token, password);
+  resetPassword = async (
+    req: Request<never, never, ResetPasswordDto, never, never>,
+    res: Response
+  ) => {
+    await this.authService.resetPassword(req.body);
+    res.sendStatus(204);
+  };
 
-      res.json(response);
-    } catch (error) {
-      res.status(500).json({ message: "Une erreur s'est produite..." });
-    }
-  },
+  passwordLogin = async (
+    req: Request<never, never, PasswordLoginDto, never, never>,
+    res: Response
+  ) => {
+    const resultToken = await this.authService.passwordLogin(req.body);
+    res.json({
+      success: true,
+      accessToken: resultToken.accessToken,
+      refreshToken: resultToken.refreshToken,
+    });
+  };
 
-  async loginUser(req: Request, res: Response) {
-    try {
-      const { email, password } = req.body;
-      const resultToken = await authService.loginUser({ email, password });
-      res.json({
-        success: true,
-        accessToken: resultToken.accessToken,
-        refreshToken: resultToken.refreshToken,
-      });
-    } catch (error) {
-      res.status(500).json({ error: error });
-    }
-  },
+  registerUser = async (
+    req: Request<never, never, RegisterDto, never, never>,
+    res: Response
+  ) => {
+    const response = await this.authService.registerUser(req.body);
+    res.json(response);
+  };
 
-  async registerUser(req: Request, res: Response) {
-    try {
-      const { email, name, password } = req.body;
-      const resultToken = await authService.registerUser({
-        email,
-        name,
-        password,
-      } as any);
-      res.json({
-        success: true,
-        accessToken: resultToken.accessToken,
-        refreshToken: resultToken.refreshToken,
-      });
-    } catch (error) {
-      res.status(500).json({ error: error });
-    }
-  },
+  googleLogin = async (
+    req: Request<never, never, GoogleLoginDto, never, never>,
+    res: Response
+  ) => {
+    const response = await this.authService.googleLogin(req.body);
+    res.json(response);
+  };
 
-  async loginUserWithGoogle(req: Request, res: Response) {
-    try {
-      const { token: tokenGoogle } = req.body;
-
-      const resultToken = await authService.loginUserWithGoogle(tokenGoogle);
-
-      res.json({
-        success: true,
-        accessToken: resultToken.accessToken,
-        refreshToken: resultToken.refreshToken,
-      });
-    } catch (error) {
-      res.status(500).json({ error: error });
-    }
-  },
-
-  async refreshToken(req: Request, res: Response) {
-    try {
-      const { refreshToken } = req.body;
-
-      const token = await authService.refreshToken(refreshToken);
-      res.json({ success: true, accessToken: token });
-    } catch (error) {
-      res.status(500).json({ error: error });
-    }
-  },
-};
+  refreshToken = async (
+    req: Request<never, never, RefreshTokenDto, never, never>,
+    res: Response
+  ) => {
+    const response = await this.authService.refreshToken(req.body);
+    res.json(response);
+  };
+}

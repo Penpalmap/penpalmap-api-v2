@@ -8,6 +8,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinTable,
   ManyToMany,
   OneToMany,
   Point,
@@ -108,6 +109,7 @@ export default class User {
   userImages?: UserImage[];
 
   @ManyToMany(() => User, (user) => user.blockedUsers)
+  @JoinTable()
   blockedUsers?: User[];
 
   @ManyToMany(() => Room, (room) => room.members)

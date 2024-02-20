@@ -4,6 +4,7 @@ import { UserLanguageDto } from "./user-language.dto";
 
 export type UserDto = {
   id: string;
+  blockedUsers?: UserDto[];
   name: string;
   email: string;
   googleId?: string;

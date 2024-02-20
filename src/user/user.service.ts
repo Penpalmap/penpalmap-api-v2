@@ -52,6 +52,7 @@ export class UserService {
   static userToDto(user: User): UserDto {
     return {
       id: user.id,
+      blockedUsers: user.blockedUsers?.map(UserService.userToDto),
       name: user.name,
       email: user.email,
       googleId: user.googleId,
@@ -96,6 +97,7 @@ export class UserService {
         id,
       },
       relations: {
+        blockedUsers: true,
         userImages: true,
         userLanguages: true,
       },

@@ -22,9 +22,7 @@ export default class Room {
   updatedAt: Date;
 
   @ManyToMany(() => User, (user) => user.rooms)
-  @JoinTable({
-    name: "UserRooms",
-  })
+  @JoinTable()
   members?: User[];
 
   @OneToMany(() => Message, (message) => message.room)

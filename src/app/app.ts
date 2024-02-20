@@ -17,7 +17,8 @@ app.use(express.json());
 app.use(express.static("public"));
 app.use(
   cors({
-    origin: "*", // ou spécifiez les origines autorisées
+    origin:
+      process.env.NODE_ENV === "production" ? process.env.FRONTEND_URL : "*",
     methods: "GET, POST, PUT, DELETE",
     allowedHeaders: "Content-Type, Authorization",
   })

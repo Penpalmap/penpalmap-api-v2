@@ -14,6 +14,19 @@ export class MessageRouter extends BaseRouter {
       "/",
       asyncErrorWrapper(this.messageController.createMessage)
     );
+    this.router.get("/", asyncErrorWrapper(this.messageController.getMessages));
+    this.router.get(
+      "/:id",
+      asyncErrorWrapper(this.messageController.getMessageById)
+    );
+    this.router.patch(
+      "/:id",
+      asyncErrorWrapper(this.messageController.updateMessage)
+    );
+    this.router.delete(
+      "/:id",
+      asyncErrorWrapper(this.messageController.deleteMessage)
+    );
   }
 
   public static getInstance(): MessageRouter {

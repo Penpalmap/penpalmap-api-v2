@@ -5,13 +5,25 @@ export class MinioService {
   private static instance: MinioService;
 
   private constructor() {
+    this.connect();
+  }
+
+  private async connect(): Promise<void> {
     try {
-      this.minioClient = new Client({
-        endPoint: process.env.MINIO_HOST ?? "localhost",
-        port: Number(process.env.MINIO_PORT) || 9000,
-        accessKey: process.env.MINIO_USER ?? "minio",
-        secretKey: process.env.MINIO_PASSWORD ?? "secret",
-        useSSL: false,
+      this.minioClient = await new Promise((resolve, reject) => {
+        try {
+          resolve(
+            new Client({
+              endPoint: process.env.MINIO_HOST ?? "localhost",
+              port: Number(process.env.MINIO_PORT) || 9000,
+              accessKey: process.env.MINIO_USER ?? "minio",
+              secretKey: process.env.MINIO_PASSWORD ?? "secret",
+              useSSL: false,
+            })
+          );
+        } catch (error) {
+          reject(error);
+        }
       });
       console.log("Connected to MinIO");
     } catch (error) {

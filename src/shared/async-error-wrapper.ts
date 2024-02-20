@@ -7,12 +7,12 @@ export const asyncErrorWrapper = <
   ReqQuery = qs.ParsedQs
 >(
   fn: (
-    req: Request<Params, never, ReqBody, ReqQuery, never>,
+    req: Request<Params, never, ReqBody, ReqQuery, never> & { userId?: string },
     res: Response<ResBody, never>
   ) => Promise<void>
 ) => {
   return (
-    req: Request<Params, never, ReqBody, ReqQuery, never>,
+    req: Request<Params, never, ReqBody, ReqQuery, never> & { userId?: string },
     res: Response<ResBody, never>,
     next: NextFunction
   ): void => {

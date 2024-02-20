@@ -1,13 +1,12 @@
 export type UpdateUserDto = {
-  name?: string;
-  email?: string;
-  gender?: string;
-  birthday?: Date;
   bio?: string;
   blockedUserIds?: string[];
+  birthday?: Date;
+  gender?: string;
   languageUsed?: string;
-  longitude?: number;
   latitude?: number;
+  longitude?: number;
+  name?: string;
   userLanguages?: {
     language: string;
     level: string;

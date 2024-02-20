@@ -22,7 +22,10 @@ import {
   ForbiddenException,
   NotFoundException,
 } from "../shared/exception/http4xx.exception";
-import { BadGatewayException } from "../shared/exception/http5xx.exception";
+import {
+  BadGatewayException,
+  InternalServerErrorException,
+} from "../shared/exception/http5xx.exception";
 
 export class AuthService {
   private static instance: AuthService;
@@ -64,7 +67,7 @@ export class AuthService {
     const accessToken = AuthService.generateAccessToken(user);
     const refreshToken = AuthService.generateRefreshToken(user);
 
-    await this.storeRefreshTokenInDB(user.id, refreshToken);
+    await this.storeRefreshTokenInDB(user, refreshToken);
     return { accessToken, refreshToken };
   };
 
@@ -79,6 +82,8 @@ export class AuthService {
     await this.resetPasswordRepository.save({
       userId: user.id,
       token: resetToken,
+      expiresAt: new Date(Date.now() + 1000 * 60 * 60),
+      user,
     });
 
     const urlToResetPassword = `${process.env.FRONTEND_URL}/auth/reset-password?token=${resetToken}`;
@@ -118,6 +123,9 @@ export class AuthService {
     if (!resetToken?.user) {
       throw new ForbiddenException("Token not found");
     }
+    if (resetToken.expiresAt.getTime() < Date.now()) {
+      throw new ForbiddenException("Token expired");
+    }
 
     await this.userService.updatePasswordRaw(resetToken.user.id, dto.password);
     await this.resetPasswordRepository.remove(resetToken);
@@ -136,7 +144,7 @@ export class AuthService {
     const accessToken = AuthService.generateAccessToken(userCreated);
     const refreshToken = AuthService.generateRefreshToken(userCreated);
 
-    await this.storeRefreshTokenInDB(userCreated.id, refreshToken);
+    await this.storeRefreshTokenInDB(userCreated, refreshToken);
     return { accessToken, refreshToken };
   };
 
@@ -160,7 +168,7 @@ export class AuthService {
     if (user) {
       const token = AuthService.generateAccessToken(user);
       const refreshToken = AuthService.generateRefreshToken(user);
-      await this.storeRefreshTokenInDB(user.id, refreshToken);
+      await this.storeRefreshTokenInDB(user, refreshToken);
       return { accessToken: token, refreshToken: refreshToken };
     }
 
@@ -182,7 +190,7 @@ export class AuthService {
     const accessToken = AuthService.generateAccessToken(newUser);
     const refreshToken = AuthService.generateRefreshToken(newUser);
 
-    await this.storeRefreshTokenInDB(newUser.id, refreshToken);
+    await this.storeRefreshTokenInDB(newUser, refreshToken);
     return { accessToken, refreshToken };
   };
 
@@ -208,21 +216,30 @@ export class AuthService {
     });
 
     if (!storedToken?.user) {
-      throw new ForbiddenException("Invalid refreshToken");
+      throw new InternalServerErrorException("No user found for refreshToken");
     }
 
     const accessToken = AuthService.generateAccessToken(storedToken.user);
     const refreshToken = AuthService.generateRefreshToken(storedToken.user);
 
-    await this.storeRefreshTokenInDB(storedToken.user.id, refreshToken);
+    await Promise.all([
+      this.deleteRefreshTokenInDB(dto.refreshToken),
+      this.storeRefreshTokenInDB(storedToken.user, refreshToken),
+    ]);
     return { accessToken, refreshToken };
   };
 
   private storeRefreshTokenInDB = async (
-    userId: string,
+    user: User,
     refreshToken: string
   ): Promise<void> => {
-    await this.refreshTokenRepository.save({ userId, token: refreshToken });
+    await this.refreshTokenRepository.save({ user, token: refreshToken });
+  };
+
+  private deleteRefreshTokenInDB = async (
+    refreshToken: string
+  ): Promise<void> => {
+    await this.refreshTokenRepository.delete({ token: refreshToken });
   };
 
   private static generateAccessToken(user: User): string {
@@ -230,7 +247,7 @@ export class AuthService {
       { userId: user.id },
       process.env.ACCESS_TOKEN_SECRET ?? "secret",
       {
-        expiresIn: "1h",
+        expiresIn: process.env.ACCESS_TOKEN_EXPIRATION ?? "365d",
       }
     );
   }
@@ -240,7 +257,7 @@ export class AuthService {
       { userId: user.id },
       process.env.REFRESH_TOKEN_SECRET ?? "secret",
       {
-        expiresIn: "7d",
+        expiresIn: process.env.REFRESH_TOKEN_EXPIRATION ?? "7y",
       }
     );
   }

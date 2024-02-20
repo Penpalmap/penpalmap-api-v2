@@ -13,10 +13,9 @@ export class RoomRouter extends BaseRouter {
     this.router.get("/", asyncErrorWrapper(this.roomController.getRooms));
     this.router.get("/:id", asyncErrorWrapper(this.roomController.getRoomById));
     this.router.post("/", asyncErrorWrapper(this.roomController.createRoom));
-    this.router.put("/:id", asyncErrorWrapper(this.roomController.updateRoom));
-    this.router.get(
-      "/:userId1/:userId2",
-      asyncErrorWrapper(this.roomController.getRoomByUsers)
+    this.router.patch(
+      "/:id",
+      asyncErrorWrapper(this.roomController.updateRoom)
     );
   }
 

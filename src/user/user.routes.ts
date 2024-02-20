@@ -13,38 +13,29 @@ export class UserRouter extends BaseRouter {
 
     this.router.get("/", asyncErrorWrapper(this.userController.getUsers));
     this.router.get("/:id", asyncErrorWrapper(this.userController.getUserById));
-    this.router.get(
-      "/email/:email",
-      asyncErrorWrapper(this.userController.getUserByEmail)
-    );
     this.router.post("/", asyncErrorWrapper(this.userController.createUser));
-    this.router.put("/:id", asyncErrorWrapper(this.userController.updateUser));
+    this.router.patch(
+      "/:id",
+      asyncErrorWrapper(this.userController.updateUser)
+    );
     this.router.delete(
       "/:id",
       asyncErrorWrapper(this.userController.deleteUser)
     );
-    this.router.get(
-      "/googleId/:googleId",
-      asyncErrorWrapper(this.userController.getUserByGoogleId)
-    );
     this.router.post(
-      "/:id/image",
+      "/:id/images",
       upload.single("profileImage"),
       asyncErrorWrapper(this.userController.uploadImage)
     );
-    this.router.get(
-      "/:id/profile",
-      asyncErrorWrapper(this.userController.getUserById)
-    );
     this.router.delete(
-      "/:id/profile/images/:position",
+      "/:id/images/:position",
       asyncErrorWrapper(this.userController.deleteImage)
     );
-    this.router.put(
-      "/:id/profile/reorder",
+    this.router.post(
+      "/:id/images/reorder",
       asyncErrorWrapper(this.userController.reorderImages)
     );
-    this.router.put(
+    this.router.post(
       "/:id/password",
       asyncErrorWrapper(this.userController.updateUserPassword)
     );

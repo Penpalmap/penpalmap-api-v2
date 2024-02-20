@@ -1,8 +1,12 @@
 export type CreateUserDto = {
-  name: string;
+  bio?: string;
+  birthday?: Date;
   email: string;
-  password?: string;
+  gender?: string;
   googleId?: string;
+  languageUsed?: string;
+  name: string;
+  password?: string;
   userLanguages?: {
     language: string;
     level: string;

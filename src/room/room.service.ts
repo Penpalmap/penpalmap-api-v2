@@ -1,5 +1,5 @@
 import Room from "./room.model";
-import { Repository } from "typeorm";
+import { DeepPartial, Repository } from "typeorm";
 import { PostgresqlService } from "../postgresql/postgresql.service";
 import { RoomDto } from "./dto/room.dto";
 import { CreateRoomDto } from "./dto/create-room.dto";
@@ -7,6 +7,7 @@ import { UpdateRoomDto } from "./dto/update-room.dto";
 import { QueryRoomDto } from "./dto/query-room.dto";
 import { UserService } from "../user/user.service";
 import { NotFoundException } from "../shared/exception/http4xx.exception";
+import User from "../user/user.model";
 
 export class RoomService {
   private static instance: RoomService;
@@ -64,7 +65,7 @@ export class RoomService {
   async getRoomById(id: string): Promise<RoomDto> {
     const room = await this.roomRepository.findOne({
       where: {
-        id: id,
+        id,
       },
       relations: {
         members: true,
@@ -98,7 +99,7 @@ export class RoomService {
   async updateRoom(id: string, dto: UpdateRoomDto): Promise<RoomDto> {
     const room = await this.roomRepository.findOne({
       where: {
-        id: id,
+        id,
       },
     });
 
@@ -108,7 +109,9 @@ export class RoomService {
 
     const updatedRoom = await this.roomRepository.save({
       ...room,
-      ...dto,
+      members: dto.memberIds.map<DeepPartial<User>>((userId) => ({
+        id: userId,
+      })),
     });
     return RoomService.roomToDto(updatedRoom);
   }

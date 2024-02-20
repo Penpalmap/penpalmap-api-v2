@@ -26,7 +26,6 @@ export default class ResetPassword {
 
   @Column("timestamptz", {
     nullable: false,
-    default: () => "CURRENT_TIMESTAMP + INTERVAL 1 HOUR",
   })
   expiresAt: Date;
 

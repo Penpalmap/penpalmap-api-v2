@@ -38,36 +38,13 @@ export class RoomController {
     res.json(room);
   };
 
-  getRoomByUsers = async (
-    req: Request<
-      { userId1: string; userId2: string },
-      never,
-      never,
-      never,
-      never
-    >,
-    res: Response
-  ): Promise<void> => {
-    const rooms = await this.roomService.getRooms({
-      userIds: [req.params.userId1, req.params.userId2],
-    });
-
-    if (rooms.length < 1) {
-      res.status(404).json({ message: "Room not found" });
-    } else if (rooms.length > 1) {
-      res.status(500).json({ message: "Multiple rooms found" });
-    } else {
-      res.json(rooms[0]);
-    }
-  };
-
   // Create room
   createRoom = async (
     req: Request<never, never, CreateRoomDto, never, never>,
     res: Response
   ): Promise<void> => {
     const room = await this.roomService.createRoom(req.body);
-    res.json(room);
+    res.status(201).json(room);
   };
 
   // Update room
@@ -75,7 +52,7 @@ export class RoomController {
     req: Request<{ id: string }, never, UpdateRoomDto, never, never>,
     res: Response
   ): Promise<void> => {
-    await this.roomService.updateRoom(req.params.id, req.body);
-    res.json({ message: "Room updated successfully" });
+    const response = await this.roomService.updateRoom(req.params.id, req.body);
+    res.json(response);
   };
 }

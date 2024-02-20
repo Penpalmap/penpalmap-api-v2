@@ -36,16 +36,16 @@ export class AuthController {
     req: Request<never, never, never, VerifyTokenDto, never>,
     res: Response
   ) => {
-    const response = await this.authService.verifyTokenResetPassword(req.query);
-    res.json(response);
+    await this.authService.verifyTokenResetPassword(req.query);
+    res.sendStatus(204);
   };
 
   resetPassword = async (
     req: Request<never, never, ResetPasswordDto, never, never>,
     res: Response
   ) => {
-    const response = await this.authService.resetPassword(req.body);
-    res.json(response);
+    await this.authService.resetPassword(req.body);
+    res.sendStatus(204);
   };
 
   passwordLogin = async (
@@ -64,31 +64,23 @@ export class AuthController {
     req: Request<never, never, RegisterDto, never, never>,
     res: Response
   ) => {
-    const resultToken = await this.authService.registerUser(req.body);
-    res.json({
-      success: true,
-      accessToken: resultToken.accessToken,
-      refreshToken: resultToken.refreshToken,
-    });
+    const response = await this.authService.registerUser(req.body);
+    res.json(response);
   };
 
   googleLogin = async (
     req: Request<never, never, GoogleLoginDto, never, never>,
     res: Response
   ) => {
-    const resultToken = await this.authService.googleLogin(req.body);
-    res.json({
-      success: true,
-      accessToken: resultToken.accessToken,
-      refreshToken: resultToken.refreshToken,
-    });
+    const response = await this.authService.googleLogin(req.body);
+    res.json(response);
   };
 
   refreshToken = async (
     req: Request<never, never, RefreshTokenDto, never, never>,
     res: Response
   ) => {
-    const token = await this.authService.refreshToken(req.body);
-    res.json({ success: true, accessToken: token });
+    const response = await this.authService.refreshToken(req.body);
+    res.json(response);
   };
 }

@@ -21,6 +21,7 @@ import {
   ForbiddenException,
   NotFoundException,
 } from "../shared/exception/http4xx.exception";
+import { UserImageDto } from "./dto/user-image.dto";
 
 export class UserService {
   private static instance: UserService;
@@ -56,7 +57,7 @@ export class UserService {
       googleId: user.googleId,
       geom: user.geom,
       points: user.points,
-      iamge: user.image,
+      image: user.image,
       gender: user.gender,
       birthday: user.birthday,
       bio: user.bio,
@@ -64,7 +65,16 @@ export class UserService {
       connections: user.connections,
       languageUsed: user.languageUsed,
       avatarNumber: user.avatarNumber,
-      userImages: user.userImages,
+      userImages: user.userImages?.map((userImage) => ({
+        id: userImage.id,
+        src: userImage.src,
+        position: userImage.position,
+      })),
+      userLanguages: user.userLanguages?.map((userLanguage) => ({
+        id: userLanguage.id,
+        language: userLanguage.language,
+        level: userLanguage.level,
+      })),
       isOnline: onlineUsers.has(user.id),
     };
   }
@@ -83,10 +93,11 @@ export class UserService {
   async getUserById(id: string): Promise<UserDto> {
     const user = await this.userRepository.findOne({
       where: {
-        id: id,
+        id,
       },
       relations: {
         userImages: true,
+        userLanguages: true,
       },
     });
 
@@ -121,6 +132,15 @@ export class UserService {
   }
 
   async createUserRaw(dto: CreateUserDto): Promise<User> {
+    const commonFields: Partial<Omit<User, "password" | "googleId">> = {
+      bio: dto.bio,
+      birthday: dto.birthday,
+      email: dto.email,
+      gender: dto.gender,
+      languageUsed: dto.languageUsed,
+      name: dto.name,
+    };
+
     if (dto.googleId) {
       // If a user tries to create an new account with a googleId
       // we should check if the user already exists
@@ -150,15 +170,14 @@ export class UserService {
 
       // No user with the same email, we should create a new user from scratch
       return await this.userRepository.save({
-        name: dto.name,
-        email: dto.email,
+        ...commonFields,
         googleId: dto.googleId,
       });
     }
 
     // No googleId provided, we first check a password is provided
     if (!dto.password) {
-      throw new BadRequestException("Password is required");
+      throw new BadRequestException("Password or googleId is required");
     }
 
     // Then we check if the user already exists with the same email
@@ -174,8 +193,7 @@ export class UserService {
     // The user does not exist, we should create a new user from scratch
     // Hash the password
     const newUser = await this.userRepository.save({
-      name: dto.name,
-      email: dto.email,
+      ...commonFields,
       password: await bcrypt.hash(dto.password, 10),
     });
 
@@ -228,7 +246,6 @@ export class UserService {
     const newUser = await this.userRepository.save({
       ...user,
       name: dto.name,
-      email: dto.email,
       gender: dto.gender,
       birthday: dto.birthday,
       bio: dto.bio,
@@ -260,7 +277,7 @@ export class UserService {
   async deleteUser(id: string): Promise<void> {
     const user = await this.userRepository.findOne({
       where: {
-        id: id,
+        id,
       },
     });
 
@@ -354,7 +371,10 @@ export class UserService {
     await this.userRepository.save({ ...user, password: hashedPassword });
   }
 
-  async uploadImage(userId: string, dto: UploadImageDto): Promise<UserImage> {
+  async uploadImage(
+    userId: string,
+    dto: UploadImageDto
+  ): Promise<UserImageDto> {
     const mapBucketName = "map";
     const profilsBucketName = "profils";
 
@@ -366,6 +386,18 @@ export class UserService {
 
     if (!user) {
       throw new NotFoundException("User not found");
+    }
+
+    const oldImage = await this.userImageRepository.findOne({
+      where: {
+        position: dto.position,
+        user: {
+          id: userId,
+        },
+      },
+    });
+    if (oldImage) {
+      throw new ConflictException("Image already exists");
     }
 
     // Create map and profils buckets if they don't exist asynchronously
@@ -397,6 +429,7 @@ export class UserService {
         .toBuffer();
       await this.MinioService.saveFile(mapBucketName, imageName, mapImage);
       await this.userRepository.save({
+        ...user,
         image: `${
           process.env.MINIO_EXTERNAL_URL ?? "http://localhost:9000"
         }/${mapBucketName}/${imageName}`,
@@ -422,7 +455,11 @@ export class UserService {
       position: dto.position,
       user,
     });
-    return image;
+    return {
+      id: image.id,
+      src: image.src,
+      position: image.position,
+    };
   }
 
   async reorderImages(id: string, dto: OrderImagesDto): Promise<void> {
@@ -475,7 +512,7 @@ export class UserService {
     }
 
     const imageToDelete = user.userImages.find(
-      (image) => image.position === position
+      (image) => image.position == position
     );
     if (!imageToDelete) {
       throw new NotFoundException("Image not found");
@@ -485,9 +522,9 @@ export class UserService {
       id: imageToDelete.id,
     });
 
-    const [bucketName, objectName] = new URL(imageToDelete.src).pathname.split(
-      "/"
-    );
+    const [_, bucketName, objectName] = new URL(
+      imageToDelete.src
+    ).pathname.split("/");
     await this.MinioService.deleteFile(bucketName, objectName);
   }
 

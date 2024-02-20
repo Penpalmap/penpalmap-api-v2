@@ -1,5 +1,6 @@
 import { Point } from "typeorm";
-import UserImage from "../user-image.model";
+import { UserImageDto } from "./user-image.dto";
+import { UserLanguageDto } from "./user-language.dto";
 
 export type UserDto = {
   id: string;
@@ -8,7 +9,7 @@ export type UserDto = {
   googleId?: string;
   geom?: Point;
   points: number;
-  iamge?: string;
+  image?: string;
   gender?: string;
   birthday?: Date;
   bio?: string;
@@ -16,6 +17,7 @@ export type UserDto = {
   connections: number;
   languageUsed?: string;
   avatarNumber?: number;
-  userImages?: UserImage[];
+  userImages?: UserImageDto[];
+  userLanguages?: UserLanguageDto[];
   isOnline: boolean;
 };

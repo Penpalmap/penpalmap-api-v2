@@ -7,6 +7,7 @@ import { CreateMessageDto } from "./dto/create-message.dto";
 import { RoomService } from "../room/room.service";
 import { UpdateMessageDto } from "./dto/update-message.dto";
 import { NotFoundException } from "../shared/exception/http4xx.exception";
+import { QueryMessagesDto } from "./dto/query-messages.dto";
 
 export class MessageService {
   private static instance: MessageService;
@@ -42,8 +43,13 @@ export class MessageService {
   }
 
   // Get all messages
-  async getMessages(): Promise<MessageDto[]> {
-    const messages = await this.messageRepository.find();
+  async getMessages(dto: QueryMessagesDto): Promise<MessageDto[]> {
+    const messages = await this.messageRepository.find({
+      where: { room: { id: dto.roomId } },
+      relations: {
+        room: true,
+      },
+    });
     return messages.map((message) => MessageService.messageToDto(message));
   }
 
@@ -51,6 +57,9 @@ export class MessageService {
   async getMessageById(id: string): Promise<MessageDto> {
     const message = await this.messageRepository.findOne({
       where: { id },
+      relations: {
+        sender: true,
+      },
     });
     if (!message) {
       throw new NotFoundException("Message not found");
@@ -83,8 +92,21 @@ export class MessageService {
 
     const updatedMessage = await this.messageRepository.save({
       ...message,
-      ...dto,
+      content: dto.content,
     });
     return MessageService.messageToDto(updatedMessage);
+  }
+
+  // Delete message
+  async deleteMessage(id: string): Promise<void> {
+    const message = await this.messageRepository.findOne({
+      where: { id },
+    });
+
+    if (!message) {
+      throw new NotFoundException("Message not found");
+    }
+
+    await this.messageRepository.remove(message);
   }
 }

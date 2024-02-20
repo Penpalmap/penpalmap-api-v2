@@ -4,6 +4,7 @@ import { QueryUserDto } from "./dto/query-user.dto";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { UpdatePasswordDto } from "./dto/update-password.dto";
+import { BadRequestException } from "../shared/exception/http4xx.exception";
 
 export class UserController {
   private static instance: UserController;
@@ -38,42 +39,13 @@ export class UserController {
     res.json(user);
   };
 
-  // Get user by email
-  getUserByEmail = async (
-    req: Request<{ email: string }, never, never, never, never>,
-    res: Response
-  ): Promise<void> => {
-    const users = await this.userService.getUsers({
-      email: req.params.email,
-    });
-
-    if (users.length === 0) {
-      res.status(404).json({ error: "User not found" });
-    }
-    res.json(users[0]);
-  };
-
-  // Get user by googleId
-  getUserByGoogleId = async (
-    req: Request<{ googleId: string }, never, never, never, never>,
-    res: Response
-  ): Promise<void> => {
-    const users = await this.userService.getUsers({
-      googleId: req.params.googleId,
-    });
-    if (users.length === 0) {
-      res.status(404).json({ error: "User not found" });
-    }
-    res.json(users[0]);
-  };
-
   // Create user
   createUser = async (
     req: Request<never, never, CreateUserDto, never, never>,
     res: Response
   ): Promise<void> => {
     const user = await this.userService.createUser(req.body);
-    res.json(user);
+    res.status(201).json(user);
   };
 
   // Update user
@@ -81,8 +53,8 @@ export class UserController {
     req: Request<{ id: string }, never, UpdateUserDto, never, never>,
     res: Response
   ): Promise<void> => {
-    await this.userService.updateUser(req.params.id, req.body);
-    res.json({ message: "User updated successfully" });
+    const response = await this.userService.updateUser(req.params.id, req.body);
+    res.json(response);
   };
 
   // Delete user
@@ -91,7 +63,7 @@ export class UserController {
     res: Response
   ): Promise<void> => {
     await this.userService.deleteUser(req.params.id);
-    res.json({ message: "User deleted successfully" });
+    res.sendStatus(204);
   };
 
   // Upload user image
@@ -104,8 +76,7 @@ export class UserController {
     const userId = req.params.id;
 
     if (!image) {
-      res.status(400).json({ error: "No file provided" });
-      return;
+      throw new BadRequestException("Image not found");
     }
 
     const userImage = await this.userService.uploadImage(userId, {
@@ -122,7 +93,7 @@ export class UserController {
   ): Promise<void> => {
     const { id, position } = req.params;
     await this.userService.deleteImage(id, position);
-    res.send(204);
+    res.sendStatus(204);
   };
 
   // Reorder user images
@@ -148,6 +119,6 @@ export class UserController {
     res: Response
   ): Promise<void> => {
     await this.userService.updateUserPassword(req.params.id, req.body);
-    res.json({ message: "Password updated successfully" });
+    res.sendStatus(204);
   };
 }

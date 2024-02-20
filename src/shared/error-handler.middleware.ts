@@ -13,6 +13,6 @@ export function handleError(
   res.status(error.status).json({ message: error.message });
 
   if (error.status >= 500) {
-    console.error(error.stack);
+    console.error(err instanceof HttpException ? error.stack : err.stack);
   }
 }

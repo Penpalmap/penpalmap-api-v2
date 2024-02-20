@@ -44,7 +44,7 @@ export class MailjetService {
       ? dto.to.map(createContact)
       : [createContact(dto.to)];
 
-    this.client.post("send").request({
+    await this.client.post("send").request({
       Messages: [
         {
           From: from,

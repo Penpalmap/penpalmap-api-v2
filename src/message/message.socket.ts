@@ -1,19 +1,19 @@
-import { Server as SocketServer, Socket } from "socket.io";
-import { onlineUsers } from "../globals";
-import { Server } from "http";
-import { UserService } from "../user/user.service";
+import { Server as SocketServer, Socket } from 'socket.io';
+import { onlineUsers } from '../globals';
+import { Server } from 'http';
+import { UserService } from '../user/user.service';
 
-const TYPING_MESSAGE_EVENT = "IS_TYPING";
-const NEW_CHAT_MESSAGE_EVENT = "NEW_MESSAGE";
-const SEND_MESSAGE_EVENT = "SEND_MESSAGE";
-const JOIN_ROOM_EVENT = "JOIN_ROOM";
-const LEAVE_ROOM_EVENT = "LEAVE_ROOM";
-const SEEN_MESSAGE = "SEEN_MESSAGE";
-const SEND_SEEN_MESSAGE = "SEND_SEEN_MESSAGE";
-const ADD_USER = "ADD_USER";
-const ONLINE_USERS = "ONLINE_USERS";
-const CREATE_ROOM = "CREATE_ROOM";
-const NEW_ROOM = "NEW_ROOM";
+const TYPING_MESSAGE_EVENT = 'IS_TYPING';
+const NEW_CHAT_MESSAGE_EVENT = 'NEW_MESSAGE';
+const SEND_MESSAGE_EVENT = 'SEND_MESSAGE';
+const JOIN_ROOM_EVENT = 'JOIN_ROOM';
+const LEAVE_ROOM_EVENT = 'LEAVE_ROOM';
+const SEEN_MESSAGE = 'SEEN_MESSAGE';
+const SEND_SEEN_MESSAGE = 'SEND_SEEN_MESSAGE';
+const ADD_USER = 'ADD_USER';
+const ONLINE_USERS = 'ONLINE_USERS';
+const CREATE_ROOM = 'CREATE_ROOM';
+const NEW_ROOM = 'NEW_ROOM';
 
 export class MessageSocket {
   private static instance: MessageSocket;
@@ -29,7 +29,7 @@ export class MessageSocket {
       },
     });
 
-    this.io.on("connection", this.connect);
+    this.io.on('connection', this.connect);
   }
 
   public static getInstance(server: Server): MessageSocket {
@@ -40,26 +40,26 @@ export class MessageSocket {
   }
 
   private connect(socket: Socket): void {
-    socket.on(ADD_USER, (userId: string) => this.addUser(socket, userId));
-    socket.on(JOIN_ROOM_EVENT, (roomId: string) =>
-      this.joinRoom(socket, roomId)
-    );
-    socket.on(CREATE_ROOM, (data: { receiverId: string; roomId: string }) =>
-      this.createRoom(socket, data)
-    );
-    socket.on(LEAVE_ROOM_EVENT, (roomId: string) =>
-      this.leaveRoom(socket, roomId)
-    );
-    socket.on(SEND_MESSAGE_EVENT, (message: { receiverId: string }) =>
-      this.sendMessage(socket, message)
-    );
-    socket.on(SEND_SEEN_MESSAGE, (data: { senderId: string }) =>
-      this.sendMessageSeen(socket, data)
-    );
-    socket.on("disconnect", () => this.disconnect(socket));
-    socket.on(TYPING_MESSAGE_EVENT, (message: { receiverId: string }) =>
-      this.sendTyping(socket, message)
-    );
+    // socket.on(ADD_USER, (userId: string) => this.addUser(socket, userId));
+    // socket.on(JOIN_ROOM_EVENT, (roomId: string) =>
+    //   this.joinRoom(socket, roomId)
+    // );
+    // socket.on(CREATE_ROOM, (data: { receiverId: string; roomId: string }) =>
+    //   this.createRoom(socket, data)
+    // );
+    // socket.on(LEAVE_ROOM_EVENT, (roomId: string) =>
+    //   this.leaveRoom(socket, roomId)
+    // );
+    // socket.on(SEND_MESSAGE_EVENT, (message: { receiverId: string }) =>
+    //   this.sendMessage(socket, message)
+    // );
+    // socket.on(SEND_SEEN_MESSAGE, (data: { senderId: string }) =>
+    //   this.sendMessageSeen(socket, data)
+    // );
+    // socket.on('disconnect', () => this.disconnect(socket));
+    // socket.on(TYPING_MESSAGE_EVENT, (message: { receiverId: string }) =>
+    //   this.sendTyping(socket, message)
+    // );
   }
 
   private disconnect(socket: Socket): void {

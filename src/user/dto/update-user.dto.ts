@@ -7,6 +7,7 @@ export type UpdateUserDto = {
   latitude?: number;
   longitude?: number;
   name?: string;
+  isNewUser?: boolean;
   userLanguages?: {
     language: string;
     level: string;

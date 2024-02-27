@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsDateString,
   IsNumber,
   IsObject,
@@ -37,6 +38,10 @@ export class UpdateUserDto {
   @IsOptional()
   @IsNumber()
   longitude?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isNewUser?: boolean;
 
   @IsOptional()
   @Length(1, 65535)

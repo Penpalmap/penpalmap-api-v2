@@ -1,3 +1,7 @@
+import { IsOptional, IsUUID } from 'class-validator';
+
 export class QueryMessagesDto {
-  roomId: string;
+  @IsOptional()
+  @IsUUID()
+  roomId?: string;
 }

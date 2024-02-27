@@ -89,6 +89,9 @@ export class RoomService {
       where: {
         id,
       },
+      relations: {
+        members: true,
+      },
     });
 
     if (!room) {
@@ -97,9 +100,11 @@ export class RoomService {
 
     const updatedRoom = await this.roomRepository.save({
       ...room,
-      members: dto.memberIds.map<DeepPartial<User>>((userId) => ({
-        id: userId,
-      })),
+      members: dto.memberIds
+        ? dto.memberIds.map<DeepPartial<User>>((userId) => ({
+            id: userId,
+          }))
+        : room.members,
     });
     return RoomService.roomToDto(updatedRoom);
   }

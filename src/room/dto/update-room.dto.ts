@@ -1,3 +1,7 @@
+import { IsOptional, IsUUID } from 'class-validator';
+
 export class UpdateRoomDto {
-  memberIds: string[];
+  @IsOptional()
+  @IsUUID('4', { each: true })
+  memberIds?: string[];
 }

@@ -5,10 +5,10 @@ export type EmailContact =
     }
   | string;
 
-export type SendEmailDto = {
+export class SendEmailDto {
   from?: EmailContact;
   to: EmailContact | EmailContact[];
   subject: string;
   text: string;
   html: string;
-};
+}

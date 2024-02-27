@@ -1,86 +1,57 @@
-import { Request, Response } from "express";
-import { AuthService } from "./auth.service";
-import { RegisterDto } from "./dto/register.dto";
-import { PasswordLoginDto } from "./dto/password-login.dto";
-import { GoogleLoginDto } from "./dto/google-login.dto";
-import { ResetPasswordDto } from "./dto/reset-password.dto";
-import { RefreshTokenDto } from "./dto/refresh-token.dto";
-import { VerifyTokenDto } from "./dto/verify-token.dto";
-import { ForgotPasswordDto } from "./dto/forgot-password.dto";
+import { Body, Controller, Get, HttpCode, Post, Query } from '@nestjs/common';
+import { AuthService } from './auth.service';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { VerifyTokenDto } from './dto/verify-token.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { PasswordLoginDto } from './dto/password-login.dto';
+import { RegisterDto } from './dto/register.dto';
+import { GoogleLoginDto } from './dto/google-login.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { TokenSetDto } from './dto/token-set.dto';
 
+@Controller('auth')
 export class AuthController {
-  private static instance: AuthController;
-  private readonly authService: AuthService;
+  constructor(private readonly authService: AuthService) {}
 
-  private constructor() {
-    this.authService = AuthService.getInstance();
+  @Post('forgot-password')
+  @HttpCode(204)
+  public async forgotPassword(@Body() body: ForgotPasswordDto): Promise<void> {
+    await this.authService.forgotPassword(body);
   }
 
-  static getInstance(): AuthController {
-    if (!AuthController.instance) {
-      AuthController.instance = new AuthController();
-    }
-
-    return AuthController.instance;
+  @Get('verify-token-password')
+  @HttpCode(204)
+  public async verifyTokenPassword(
+    @Query() query: VerifyTokenDto,
+  ): Promise<void> {
+    await this.authService.verifyTokenPassword(query);
   }
 
-  forgotPassword = async (
-    req: Request<never, never, ForgotPasswordDto, never, never>,
-    res: Response
-  ) => {
-    await this.authService.forgotPassword(req.body);
-    res.sendStatus(204);
-  };
+  @Post('reset-password')
+  @HttpCode(204)
+  public async resetPassword(@Body() body: ResetPasswordDto): Promise<void> {
+    await this.authService.resetPassword(body);
+  }
 
-  verifyTokenPassword = async (
-    req: Request<never, never, never, VerifyTokenDto, never>,
-    res: Response
-  ) => {
-    await this.authService.verifyTokenResetPassword(req.query);
-    res.sendStatus(204);
-  };
+  @Post('login')
+  public async login(@Body() body: PasswordLoginDto): Promise<TokenSetDto> {
+    return await this.authService.passwordLogin(body);
+  }
 
-  resetPassword = async (
-    req: Request<never, never, ResetPasswordDto, never, never>,
-    res: Response
-  ) => {
-    await this.authService.resetPassword(req.body);
-    res.sendStatus(204);
-  };
+  @Post('register')
+  public async register(@Body() body: RegisterDto): Promise<TokenSetDto> {
+    return await this.authService.register(body);
+  }
 
-  passwordLogin = async (
-    req: Request<never, never, PasswordLoginDto, never, never>,
-    res: Response
-  ) => {
-    const resultToken = await this.authService.passwordLogin(req.body);
-    res.json({
-      success: true,
-      accessToken: resultToken.accessToken,
-      refreshToken: resultToken.refreshToken,
-    });
-  };
+  @Post('login/google')
+  public async googleLogin(@Body() body: GoogleLoginDto): Promise<TokenSetDto> {
+    return await this.authService.googleLogin(body);
+  }
 
-  registerUser = async (
-    req: Request<never, never, RegisterDto, never, never>,
-    res: Response
-  ) => {
-    const response = await this.authService.registerUser(req.body);
-    res.json(response);
-  };
-
-  googleLogin = async (
-    req: Request<never, never, GoogleLoginDto, never, never>,
-    res: Response
-  ) => {
-    const response = await this.authService.googleLogin(req.body);
-    res.json(response);
-  };
-
-  refreshToken = async (
-    req: Request<never, never, RefreshTokenDto, never, never>,
-    res: Response
-  ) => {
-    const response = await this.authService.refreshToken(req.body);
-    res.json(response);
-  };
+  @Post('refresh-token')
+  public async refreshToken(
+    @Body() body: RefreshTokenDto,
+  ): Promise<TokenSetDto> {
+    return await this.authService.refreshToken(body);
+  }
 }

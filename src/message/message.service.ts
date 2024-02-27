@@ -1,35 +1,22 @@
-import Message from "./message.model";
-import { Repository } from "typeorm";
-import { PostgresqlService } from "../postgresql/postgresql.service";
-import { MessageDto } from "./dto/message.dto";
-import { UserService } from "../user/user.service";
-import { CreateMessageDto } from "./dto/create-message.dto";
-import { RoomService } from "../room/room.service";
-import { UpdateMessageDto } from "./dto/update-message.dto";
-import { NotFoundException } from "../shared/exception/http4xx.exception";
-import { QueryMessagesDto } from "./dto/query-messages.dto";
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import Message from './message.model';
+import { Repository } from 'typeorm';
+import { UserService } from '../user/user.service';
+import { RoomService } from '../room/room.service';
+import { MessageDto } from './dto/message.dto';
+import { QueryMessagesDto } from './dto/query-messages.dto';
+import { CreateMessageDto } from './dto/create-message.dto';
+import { UpdateMessageDto } from './dto/update-message.dto';
 
+@Injectable()
 export class MessageService {
-  private static instance: MessageService;
-  private readonly messageRepository: Repository<Message>;
-  private readonly userService: UserService;
-  private readonly roomService: RoomService;
-
-  private constructor() {
-    const dataSource = PostgresqlService.getInstance().getDataSource();
-    this.messageRepository = dataSource.getRepository(Message);
-
-    this.userService = UserService.getInstance();
-    this.roomService = RoomService.getInstance();
-  }
-
-  static getInstance(): MessageService {
-    if (!MessageService.instance) {
-      MessageService.instance = new MessageService();
-    }
-
-    return MessageService.instance;
-  }
+  constructor(
+    @InjectRepository(Message)
+    private readonly messageRepository: Repository<Message>,
+    private readonly userService: UserService,
+    private readonly roomService: RoomService,
+  ) {}
 
   static messageToDto(message: Message): MessageDto {
     return {
@@ -62,7 +49,7 @@ export class MessageService {
       },
     });
     if (!message) {
-      throw new NotFoundException("Message not found");
+      throw new NotFoundException('Message not found');
     }
     return MessageService.messageToDto(message);
   }
@@ -87,7 +74,7 @@ export class MessageService {
     });
 
     if (!message) {
-      throw new NotFoundException("Message not found");
+      throw new NotFoundException('Message not found');
     }
 
     const updatedMessage = await this.messageRepository.save({
@@ -104,7 +91,7 @@ export class MessageService {
     });
 
     if (!message) {
-      throw new NotFoundException("Message not found");
+      throw new NotFoundException('Message not found');
     }
 
     await this.messageRepository.remove(message);

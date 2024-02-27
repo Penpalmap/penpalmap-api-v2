@@ -1,3 +1,7 @@
-export type QueryMessagesDto = {
-  roomId: string;
-};
+import { IsOptional, IsUUID } from 'class-validator';
+
+export class QueryMessagesDto {
+  @IsOptional()
+  @IsUUID()
+  roomId?: string;
+}

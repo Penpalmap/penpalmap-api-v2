@@ -5,33 +5,33 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
-} from "typeorm";
-import User from "./user.model";
+} from 'typeorm';
+import User from './user.model';
 
 @Entity()
 export default class UserLanguage {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column("varchar", {
+  @Column('varchar', {
     nullable: false,
   })
   language: string;
 
-  @Column("varchar", {
+  @Column('varchar', {
     nullable: false,
   })
   level: string;
 
   @ManyToOne(() => User, (user) => user.userLanguages, {
-    onUpdate: "CASCADE",
+    onUpdate: 'CASCADE',
   })
-  @JoinColumn({ name: "userId" })
+  @JoinColumn({ name: 'userId' })
   user: User;
 
-  @CreateDateColumn({ type: "timestamptz" })
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 
-  @CreateDateColumn({ type: "timestamptz" })
+  @CreateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;
 }

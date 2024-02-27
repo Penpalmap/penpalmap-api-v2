@@ -6,41 +6,41 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
-} from "typeorm";
-import User from "../user/user.model";
-import Room from "../room/room.model";
+} from 'typeorm';
+import User from '../user/user.model';
+import Room from '../room/room.model';
 
 @Entity()
 export default class Message {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column("varchar", {
+  @Column('varchar', {
     nullable: false,
   })
   content: string;
 
-  @Column("boolean", {
+  @Column('boolean', {
     nullable: false,
     default: false,
   })
   isSeen: boolean;
 
   @ManyToOne(() => User, (user) => user.messages, {
-    onUpdate: "CASCADE",
+    onUpdate: 'CASCADE',
   })
-  @JoinColumn({ name: "senderId" })
+  @JoinColumn({ name: 'senderId' })
   sender?: User;
 
   @ManyToOne(() => Room, (room) => room.messages, {
-    onUpdate: "CASCADE",
+    onUpdate: 'CASCADE',
   })
-  @JoinColumn({ name: "roomId" })
+  @JoinColumn({ name: 'roomId' })
   room?: Room;
 
-  @CreateDateColumn({ type: "timestamptz" })
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 
-  @UpdateDateColumn({ type: "timestamptz" })
+  @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;
 }

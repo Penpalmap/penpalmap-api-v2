@@ -1,8 +1,8 @@
-import { Point } from "typeorm";
-import { UserImageDto } from "./user-image.dto";
-import { UserLanguageDto } from "./user-language.dto";
+import { Point } from 'typeorm';
+import { UserImageDto } from './user-image.dto';
+import { UserLanguageDto } from './user-language.dto';
 
-export type UserDto = {
+export class UserDto {
   id: string;
   blockedUsers?: UserDto[];
   name: string;
@@ -21,4 +21,4 @@ export type UserDto = {
   userImages?: UserImageDto[];
   userLanguages?: UserLanguageDto[];
   isOnline: boolean;
-};
+}

@@ -1,8 +1,8 @@
-import { UserDto } from "../../user/dto/user.dto";
+import { UserDto } from '../../user/dto/user.dto';
 
-export type MessageDto = {
+export class MessageDto {
   id: string;
   content: string;
   isSeen: boolean;
   sender?: UserDto;
-};
+}

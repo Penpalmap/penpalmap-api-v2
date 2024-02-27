@@ -1,6 +1,8 @@
-import { MemoryFile } from "../../shared/memory-file.dto";
+import { IsPositive } from 'class-validator';
+import { MemoryFile } from '../../shared/memory-file.dto';
 
-export type UploadImageDto = {
+export class UploadImageDto {
+  @IsPositive()
   position: number;
   image: MemoryFile;
-};
+}

@@ -75,6 +75,9 @@ export class UserService {
       },
       take: dto.limit,
       skip: dto.offset,
+      order: {
+        [dto.orderBy]: dto.order,
+      },
     });
     const page = new PageDto<User>(dto.limit, dto.offset, total, users);
     return page.map(UserService.userToDto);

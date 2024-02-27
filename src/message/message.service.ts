@@ -36,6 +36,9 @@ export class MessageService {
       where: { room: { id: dto.roomId } },
       skip: dto.offset,
       take: dto.limit,
+      order: {
+        [dto.orderBy]: dto.order,
+      },
       relations: {
         room: true,
       },

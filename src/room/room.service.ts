@@ -45,6 +45,7 @@ export class RoomService {
       const [rooms, total] = await query
         .skip(dto.offset)
         .take(dto.limit)
+        .orderBy(`room.${dto.orderBy}`, dto.order)
         .getManyAndCount();
       const page = new PageDto<Room>(dto.limit, dto.offset, total, rooms);
       return page.map((room) =>
@@ -55,6 +56,9 @@ export class RoomService {
     const rooms = await this.roomRepository.find({
       skip: dto.offset,
       take: dto.limit,
+      order: {
+        [dto.orderBy]: dto.order,
+      },
     });
     const page = new PageDto<Room>(dto.limit, dto.offset, rooms.length, rooms);
     return page.map((room) => RoomService.roomToDto(room));

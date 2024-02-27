@@ -1,4 +1,4 @@
-export type TokenSetDto = {
+export class TokenSetDto {
   accessToken: string;
   refreshToken: string;
-};
+}

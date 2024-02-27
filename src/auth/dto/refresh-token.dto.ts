@@ -1,3 +1,3 @@
-export type RefreshTokenDto = {
+export class RefreshTokenDto {
   refreshToken: string;
-};
+}

@@ -1,6 +1,6 @@
-import { MemoryFile } from "../../shared/memory-file.dto";
+import { MemoryFile } from '../../shared/memory-file.dto';
 
-export type UploadImageDto = {
+export class UploadImageDto {
   position: number;
   image: MemoryFile;
-};
+}

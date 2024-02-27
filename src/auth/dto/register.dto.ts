@@ -1,6 +1,6 @@
-export type RegisterDto = {
+export class RegisterDto {
   email: string;
   name: string;
   password: string;
   passwordConfirmation: string;
-};
+}

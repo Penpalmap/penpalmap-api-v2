@@ -1,77 +1,58 @@
-import { Request, Response } from "express";
-import { MessageService } from "./message.service";
-import { CreateMessageDto } from "./dto/create-message.dto";
-import { QueryMessagesDto } from "./dto/query-messages.dto";
-import { UpdateMessageDto } from "./dto/update-message.dto";
-import { UnauthorizedException } from "../shared/exception/http4xx.exception";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { MessageService } from './message.service';
+import { CreateMessageDto } from './dto/create-message.dto';
+import { QueryMessagesDto } from './dto/query-messages.dto';
+import { UpdateMessageDto } from './dto/update-message.dto';
+import { MessageDto } from './dto/message.dto';
+import { AuthGuard } from '@nestjs/passport';
 
+@Controller('messages')
+@UseGuards(AuthGuard('jwt'))
 export class MessageController {
-  private static instance: MessageController;
-  private readonly messageService: MessageService;
+  constructor(private readonly messageService: MessageService) {}
 
-  private constructor() {
-    this.messageService = MessageService.getInstance();
+  @Post()
+  @HttpCode(201)
+  public async createMessage(
+    @Body() body: CreateMessageDto,
+  ): Promise<MessageDto> {
+    return await this.messageService.createMessage(body);
   }
 
-  static getInstance(): MessageController {
-    if (!MessageController.instance) {
-      MessageController.instance = new MessageController();
-    }
-    return MessageController.instance;
+  @Get()
+  public async getMessages(
+    @Query() query: QueryMessagesDto,
+  ): Promise<MessageDto[]> {
+    return await this.messageService.getMessages(query);
   }
 
-  createMessage = async (
-    req: Request<
-      never,
-      never,
-      Omit<CreateMessageDto, "senderId">,
-      never,
-      never
-    > & { userId?: string },
-    res: Response
-  ): Promise<void> => {
-    if (!req.userId) {
-      throw new UnauthorizedException("No user id in request");
-    }
-    const message = await this.messageService.createMessage({
-      ...req.body,
-      senderId: req.userId,
-    });
-    res.json(message);
-  };
+  @Get(':id')
+  public async getMessage(@Param('id') id: string): Promise<MessageDto> {
+    return await this.messageService.getMessageById(id);
+  }
 
-  getMessages = async (
-    req: Request<never, never, never, QueryMessagesDto, never>,
-    res: Response
-  ): Promise<void> => {
-    const messages = await this.messageService.getMessages(req.query);
-    res.json(messages);
-  };
+  @Patch(':id')
+  public async updateMessage(
+    @Param('id') id: string,
+    @Body() body: UpdateMessageDto,
+  ): Promise<MessageDto> {
+    return await this.messageService.updateMessage(id, body);
+  }
 
-  getMessageById = async (
-    req: Request<{ id: string }, never, never, never, never>,
-    res: Response
-  ): Promise<void> => {
-    const message = await this.messageService.getMessageById(req.params.id);
-    res.json(message);
-  };
-
-  updateMessage = async (
-    req: Request<{ id: string }, never, UpdateMessageDto, never, never>,
-    res: Response
-  ): Promise<void> => {
-    const message = await this.messageService.updateMessage(
-      req.params.id,
-      req.body
-    );
-    res.json(message);
-  };
-
-  deleteMessage = async (
-    req: Request<{ id: string }, never, never, never, never>,
-    res: Response
-  ): Promise<void> => {
-    await this.messageService.deleteMessage(req.params.id);
-    res.sendStatus(204);
-  };
+  @Delete(':id')
+  @HttpCode(204)
+  public async deleteMessage(@Param('id') id: string): Promise<void> {
+    await this.messageService.deleteMessage(id);
+  }
 }

@@ -1,3 +1,3 @@
-export type UpdateMessageDto = {
+export class UpdateMessageDto {
   content: string;
-};
+}

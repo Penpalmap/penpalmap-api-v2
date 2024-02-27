@@ -1,5 +1,5 @@
-export type UserLanguageDto = {
+export class UserLanguageDto {
   id: string;
   language: string;
   level: string;
-};
+}

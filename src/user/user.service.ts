@@ -1,53 +1,39 @@
-import bcrypt from "bcrypt";
-import sharp from "sharp";
-import { v4 as uuid } from "uuid";
-import User from "./user.model";
-import { onlineUsers } from "../globals";
-import UserImage from "./user-image.model";
-import UserLanguage from "./user-language.model";
-import { MinioService } from "../minio/minio.service";
-import { In, Point, Repository } from "typeorm";
-import { PostgresqlService } from "../postgresql/postgresql.service";
-import { CreateUserDto } from "./dto/create-user.dto";
-import { UserDto } from "./dto/user.dto";
-import { UpdateUserDto } from "./dto/update-user.dto";
-import { QueryUserDto } from "./dto/query-user.dto";
-import { UploadImageDto } from "./dto/upload-image.dto";
-import { UpdatePasswordDto } from "./dto/update-password.dto";
-import { OrderImagesDto } from "./dto/order-images.dto";
+import bcrypt from 'bcrypt';
+import sharp from 'sharp';
+import { v4 as uuid } from 'uuid';
 import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  Injectable,
   NotFoundException,
-} from "../shared/exception/http4xx.exception";
-import { UserImageDto } from "./dto/user-image.dto";
+} from '@nestjs/common';
+import User from './user.model';
+import { UserDto } from './dto/user.dto';
+import { QueryUserDto } from './dto/query-user.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { In, Point, Repository } from 'typeorm';
+import { CreateUserDto } from './dto/create-user.dto';
+import UserLanguage from './user-language.model';
+import { UpdateUserDto } from './dto/update-user.dto';
+import UserImage from './user-image.model';
+import { UpdatePasswordDto } from './dto/update-password.dto';
+import { UploadImageDto } from './dto/upload-image.dto';
+import { UserImageDto } from './dto/user-image.dto';
+import { OrderImagesDto } from './dto/order-images.dto';
+import { onlineUsers } from '../global';
+import { MinioService } from '../minio/minio.service';
 
+@Injectable()
 export class UserService {
-  private static instance: UserService;
-  private readonly userRepository: Repository<User>;
-  private readonly userLanguageRepository: Repository<UserLanguage>;
-  private readonly userImageRepository: Repository<UserImage>;
-
-  private readonly MinioService: MinioService;
-
-  private constructor() {
-    const dataSource = PostgresqlService.getInstance().getDataSource();
-
-    this.userRepository = dataSource.getRepository(User);
-    this.userLanguageRepository = dataSource.getRepository(UserLanguage);
-    this.userImageRepository = dataSource.getRepository(UserImage);
-
-    this.MinioService = MinioService.getInstance();
-  }
-
-  static getInstance(): UserService {
-    if (!UserService.instance) {
-      UserService.instance = new UserService();
-    }
-
-    return UserService.instance;
-  }
+  constructor(
+    @InjectRepository(User) private readonly userRepository: Repository<User>,
+    @InjectRepository(UserLanguage)
+    private readonly userLanguageRepository: Repository<UserLanguage>,
+    @InjectRepository(UserImage)
+    private readonly userImageRepository: Repository<UserImage>,
+    private readonly minioService: MinioService,
+  ) {}
 
   static userToDto(user: User): UserDto {
     return {
@@ -92,6 +78,10 @@ export class UserService {
 
   // Get user
   async getUserById(id: string): Promise<UserDto> {
+    return UserService.userToDto(await this.getUserByIdRaw(id));
+  }
+
+  async getUserByIdRaw(id: string): Promise<User> {
     const user = await this.userRepository.findOne({
       where: {
         id,
@@ -104,14 +94,14 @@ export class UserService {
     });
 
     if (!user) {
-      throw new NotFoundException("User not found");
+      throw new NotFoundException('User not found');
     }
-    return UserService.userToDto(user);
+    return user;
   }
 
   async getUserByLoginRaw(email?: string, googleId?: string): Promise<User> {
     if (!email && !googleId) {
-      throw new BadRequestException("Email or googleId is required");
+      throw new BadRequestException('Email or googleId is required');
     }
 
     const user = await this.userRepository.findOne({
@@ -122,7 +112,7 @@ export class UserService {
     });
 
     if (!user) {
-      throw new NotFoundException("User not found");
+      throw new NotFoundException('User not found');
     }
     return user;
   }
@@ -134,7 +124,7 @@ export class UserService {
   }
 
   async createUserRaw(dto: CreateUserDto): Promise<User> {
-    const commonFields: Partial<Omit<User, "password" | "googleId">> = {
+    const commonFields: Partial<Omit<User, 'password' | 'googleId'>> = {
       bio: dto.bio,
       birthday: dto.birthday,
       email: dto.email,
@@ -152,7 +142,7 @@ export class UserService {
         },
       });
       if (userWithGoogleId) {
-        throw new ConflictException("A user with this googleId already exists");
+        throw new ConflictException('A user with this googleId already exists');
       }
 
       // No user with this googleId, we should check if the user already exists with the same email
@@ -179,7 +169,7 @@ export class UserService {
 
     // No googleId provided, we first check a password is provided
     if (!dto.password) {
-      throw new BadRequestException("Password or googleId is required");
+      throw new BadRequestException('Password or googleId is required');
     }
 
     // Then we check if the user already exists with the same email
@@ -189,7 +179,7 @@ export class UserService {
       },
     });
     if (userWithEmail) {
-      throw new ConflictException("User already exists");
+      throw new ConflictException('User already exists');
     }
 
     // The user does not exist, we should create a new user from scratch
@@ -201,7 +191,7 @@ export class UserService {
 
     if (dto.userLanguages) {
       await this.userLanguageRepository.insert(
-        dto.userLanguages.map((lang) => ({ ...lang, user: newUser }))
+        dto.userLanguages.map((lang) => ({ ...lang, user: newUser })),
       );
     }
 
@@ -220,13 +210,13 @@ export class UserService {
     });
 
     if (!user) {
-      throw new NotFoundException("User not found");
+      throw new NotFoundException('User not found');
     }
 
     const geom: Point | undefined =
       dto.latitude && dto.longitude
         ? {
-            type: "Point",
+            type: 'Point',
             coordinates: [dto.longitude, dto.latitude],
           }
         : user.geom;
@@ -241,7 +231,7 @@ export class UserService {
     if (dto.userLanguages) {
       await this.userLanguageRepository.delete({ user });
       await this.userLanguageRepository.insert(
-        dto.userLanguages.map((lang) => ({ ...lang, user }))
+        dto.userLanguages.map((lang) => ({ ...lang, user })),
       );
     }
 
@@ -266,7 +256,7 @@ export class UserService {
     });
 
     if (!user) {
-      throw new NotFoundException("User not found");
+      throw new NotFoundException('User not found');
     }
 
     return await this.userRepository.save({
@@ -284,7 +274,7 @@ export class UserService {
     });
 
     if (!user) {
-      throw new NotFoundException("User not found");
+      throw new NotFoundException('User not found');
     }
 
     await Promise.all([
@@ -319,9 +309,9 @@ export class UserService {
       user.points = finalScore;
       user.geom = user.geom
         ? {
-            type: "Point",
+            type: 'Point',
             coordinates: user.geom.coordinates.map(
-              (coord) => coord + Math.random() * 0.01 - 0.05
+              (coord) => coord + Math.random() * 0.01 - 0.05,
             ),
           }
         : undefined;
@@ -333,7 +323,7 @@ export class UserService {
     const user = await this.userRepository.findOne({ where: { id } });
 
     if (!user) {
-      throw new NotFoundException("User not found");
+      throw new NotFoundException('User not found');
     }
 
     await this.userRepository.save({
@@ -350,23 +340,23 @@ export class UserService {
     });
 
     if (!user) {
-      throw new NotFoundException("User not found");
+      throw new NotFoundException('User not found');
     }
     if (!user.password) {
-      throw new ForbiddenException("User has no password");
+      throw new ForbiddenException('User has no password');
     }
     if (dto.newPassword === dto.oldPassword) {
       throw new BadRequestException(
-        "New password must be different from old password"
+        'New password must be different from old password',
       );
     }
     const isPasswordValid = await bcrypt.compare(
       dto.oldPassword,
-      user.password
+      user.password,
     );
 
     if (!isPasswordValid) {
-      throw new ForbiddenException("Old password is not valid");
+      throw new ForbiddenException('Old password is not valid');
     }
 
     const hashedPassword = await bcrypt.hash(dto.newPassword, 10);
@@ -375,10 +365,10 @@ export class UserService {
 
   async uploadImage(
     userId: string,
-    dto: UploadImageDto
+    dto: UploadImageDto,
   ): Promise<UserImageDto> {
-    const mapBucketName = "map";
-    const profilsBucketName = "profils";
+    const mapBucketName = 'map';
+    const profilsBucketName = 'profils';
 
     const user = await this.userRepository.findOne({
       where: {
@@ -387,7 +377,7 @@ export class UserService {
     });
 
     if (!user) {
-      throw new NotFoundException("User not found");
+      throw new NotFoundException('User not found');
     }
 
     const oldImage = await this.userImageRepository.findOne({
@@ -399,23 +389,23 @@ export class UserService {
       },
     });
     if (oldImage) {
-      throw new ConflictException("Image already exists");
+      throw new ConflictException('Image already exists');
     }
 
     // Create map and profils buckets if they don't exist asynchronously
     await Promise.all([
-      this.MinioService.bucketExists(mapBucketName).then(async (exists) => {
+      this.minioService.bucketExists(mapBucketName).then(async (exists) => {
         if (!exists) {
-          await this.MinioService.createBucket(mapBucketName);
-          await this.MinioService.setBucketPublicAccess(mapBucketName, true);
+          await this.minioService.createBucket(mapBucketName);
+          await this.minioService.setBucketPublicAccess(mapBucketName, true);
         }
       }),
-      this.MinioService.bucketExists(profilsBucketName).then(async (exists) => {
+      this.minioService.bucketExists(profilsBucketName).then(async (exists) => {
         if (!exists) {
-          await this.MinioService.createBucket(profilsBucketName);
-          await this.MinioService.setBucketPublicAccess(
+          await this.minioService.createBucket(profilsBucketName);
+          await this.minioService.setBucketPublicAccess(
             profilsBucketName,
-            true
+            true,
           );
         }
       }),
@@ -429,11 +419,11 @@ export class UserService {
         .resize(100, 100)
         .webp({ quality: 50 })
         .toBuffer();
-      await this.MinioService.saveFile(mapBucketName, imageName, mapImage);
+      await this.minioService.uploadObject(mapBucketName, imageName, mapImage);
       await this.userRepository.save({
         ...user,
         image: `${
-          process.env.MINIO_EXTERNAL_URL ?? "http://localhost:9000"
+          process.env.MINIO_EXTERNAL_URL ?? 'http://localhost:9000'
         }/${mapBucketName}/${imageName}`,
       });
     }
@@ -443,16 +433,16 @@ export class UserService {
       .resize(200, 200)
       .webp({ quality: 90 })
       .toBuffer();
-    await this.MinioService.saveFile(
+    await this.minioService.uploadObject(
       profilsBucketName,
       imageName,
-      profilsImage
+      profilsImage,
     );
 
     // Save image UUID in database and return image
     const image = await this.userImageRepository.save({
       src: `${
-        process.env.MINIO_EXTERNAL_URL ?? "http://localhost:9000"
+        process.env.MINIO_EXTERNAL_URL ?? 'http://localhost:9000'
       }/${profilsBucketName}/${imageName}`,
       position: dto.position,
       user,
@@ -475,13 +465,13 @@ export class UserService {
     });
 
     if (!user) {
-      throw new NotFoundException("User not found");
+      throw new NotFoundException('User not found');
     }
     if (!user.userImages) {
-      throw new ForbiddenException("No images found for this user");
+      throw new ForbiddenException('No images found for this user');
     }
     if (user.userImages.length !== dto.order.length) {
-      throw new BadRequestException("Images length is not the same");
+      throw new BadRequestException('Images length is not the same');
     }
 
     await Promise.all(
@@ -491,8 +481,8 @@ export class UserService {
           this.userImageRepository.save({
             ...image,
             position: dto.order[index],
-          })
-        )
+          }),
+        ),
     );
   }
 
@@ -507,17 +497,17 @@ export class UserService {
     });
 
     if (!user) {
-      throw new NotFoundException("User not found");
+      throw new NotFoundException('User not found');
     }
     if (!user.userImages) {
-      throw new ForbiddenException("No images found for this user");
+      throw new ForbiddenException('No images found for this user');
     }
 
     const imageToDelete = user.userImages.find(
-      (image) => image.position == position
+      (image) => image.position == position,
     );
     if (!imageToDelete) {
-      throw new NotFoundException("Image not found");
+      throw new NotFoundException('Image not found');
     }
 
     await this.userImageRepository.delete({
@@ -525,9 +515,9 @@ export class UserService {
     });
 
     const [_, bucketName, objectName] = new URL(
-      imageToDelete.src
-    ).pathname.split("/");
-    await this.MinioService.deleteFile(bucketName, objectName);
+      imageToDelete.src,
+    ).pathname.split('/');
+    await this.minioService.deleteObject(bucketName, objectName);
   }
 
   async setDefaultImage(id: string, position: number): Promise<void> {
@@ -541,17 +531,17 @@ export class UserService {
     });
 
     if (!user) {
-      throw new NotFoundException("User not found");
+      throw new NotFoundException('User not found');
     }
     if (!user.userImages) {
-      throw new ForbiddenException("No images found for this user");
+      throw new ForbiddenException('No images found for this user');
     }
 
     const imageToSetDefault = user.userImages.find(
-      (image) => image.position === position
+      (image) => image.position === position,
     );
     if (!imageToSetDefault) {
-      throw new NotFoundException("Image not found");
+      throw new NotFoundException('Image not found');
     }
 
     await this.userRepository.save({

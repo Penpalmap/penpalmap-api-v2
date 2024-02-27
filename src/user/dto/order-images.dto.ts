@@ -1,3 +1,3 @@
-export type OrderImagesDto = {
+export class OrderImagesDto {
   order: number[];
-};
+}

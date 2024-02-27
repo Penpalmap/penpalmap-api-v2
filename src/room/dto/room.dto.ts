@@ -1,7 +1,6 @@
-import { MessageDto } from "../../message/dto/message.dto";
-import { UserDto } from "../../user/dto/user.dto";
+import { UserDto } from '../../user/dto/user.dto';
 
-export type RoomDto = {
+export class RoomDto {
   id: string;
   members?: UserDto[];
-};
+}

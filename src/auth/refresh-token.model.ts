@@ -6,30 +6,30 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
-} from "typeorm";
-import User from "../user/user.model";
+} from 'typeorm';
+import User from '../user/user.model';
 
 @Entity()
 export default class RefreshToken {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: number;
 
-  @Column("varchar", {
+  @Column('varchar', {
     nullable: false,
     unique: true,
   })
   token: string;
 
   @ManyToOne(() => User, (user) => user.refreshTokens, {
-    onUpdate: "CASCADE",
-    onDelete: "CASCADE",
+    onUpdate: 'CASCADE',
+    onDelete: 'CASCADE',
   })
-  @JoinColumn({ name: "userId" })
+  @JoinColumn({ name: 'userId' })
   user?: User;
 
-  @CreateDateColumn({ type: "timestamptz" })
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 
-  @UpdateDateColumn({ type: "timestamptz" })
+  @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;
 }

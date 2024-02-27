@@ -2,7 +2,7 @@
 
 ## About penpalmap-api-v2
 
-`penpalmap-api-v2` is a modern and efficient backend API, developed in TypeScript using an Express server for Penpalmap project.
+`penpalmap-api-v2` is a modern and efficient backend API, developed in TypeScript using an NestJS for Penpalmap project.
 
 ## Prerequisites
 

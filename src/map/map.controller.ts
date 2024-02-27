@@ -1,27 +1,15 @@
-import { Request, Response } from "express";
-import { MapService } from "./map.services";
+import { Controller, Get, UseGuards } from '@nestjs/common';
+import { MapService } from './map.service';
+import { UserDto } from '../user/dto/user.dto';
+import { AuthGuard } from '@nestjs/passport';
 
+@Controller('map')
+@UseGuards(AuthGuard('jwt'))
 export class MapController {
-  private static instance: MapController;
-  private readonly mapService: MapService;
+  constructor(private readonly mapService: MapService) {}
 
-  private constructor() {
-    this.mapService = MapService.getInstance();
+  @Get('users')
+  public async getUsers(): Promise<UserDto[]> {
+    return await this.mapService.getUsers();
   }
-
-  public static getInstance(): MapController {
-    if (!MapController.instance) {
-      MapController.instance = new MapController();
-    }
-
-    return MapController.instance;
-  }
-
-  getUsers = async (
-    _req: Request<never, never, never, never, never>,
-    res: Response
-  ) => {
-    const users = await this.mapService.getUsersInMap();
-    res.json(users);
-  };
 }

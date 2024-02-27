@@ -1,3 +1,3 @@
-export type GoogleLoginDto = {
+export class GoogleLoginDto {
   token: string;
-};
+}

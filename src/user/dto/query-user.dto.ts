@@ -1,4 +1,4 @@
-export type QueryUserDto = {
+export class QueryUserDto {
   email?: string;
   googleId?: string;
-};
+}

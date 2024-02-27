@@ -1,3 +1,3 @@
-export type VerifyTokenDto = {
+export class VerifyTokenDto {
   token: string;
-};
+}

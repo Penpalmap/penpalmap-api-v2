@@ -1,5 +1,5 @@
-import User from "../user/user.model";
-import Message from "../message/message.model";
+import User from '../user/user.model';
+import Message from '../message/message.model';
 import {
   CreateDateColumn,
   Entity,
@@ -8,17 +8,17 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
-} from "typeorm";
+} from 'typeorm';
 
 @Entity()
 export default class Room {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @CreateDateColumn({ type: "timestamptz" })
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 
-  @UpdateDateColumn({ type: "timestamptz" })
+  @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;
 
   @ManyToMany(() => User, (user) => user.rooms)

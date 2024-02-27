@@ -1,4 +1,4 @@
-export type CreateUserDto = {
+export class CreateUserDto {
   bio?: string;
   birthday?: Date;
   email: string;
@@ -11,4 +11,4 @@ export type CreateUserDto = {
     language: string;
     level: string;
   }[];
-};
+}

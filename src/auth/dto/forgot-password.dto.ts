@@ -1,3 +1,3 @@
-export type ForgotPasswordDto = {
+export class ForgotPasswordDto {
   email: string;
-};
+}

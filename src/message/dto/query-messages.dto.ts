@@ -1,3 +1,3 @@
-export type QueryMessagesDto = {
+export class QueryMessagesDto {
   roomId: string;
-};
+}

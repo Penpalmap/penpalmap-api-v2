@@ -1,4 +1,4 @@
-export type UpdateUserDto = {
+export class UpdateUserDto {
   bio?: string;
   blockedUserIds?: string[];
   birthday?: Date;
@@ -11,4 +11,4 @@ export type UpdateUserDto = {
     language: string;
     level: string;
   }[];
-};
+}

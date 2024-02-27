@@ -6,33 +6,33 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
-} from "typeorm";
-import User from "./user.model";
+} from 'typeorm';
+import User from './user.model';
 
 @Entity()
 export default class UserImage {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column("varchar", {
+  @Column('varchar', {
     nullable: false,
   })
   src: string;
 
-  @Column("int4", {
+  @Column('int4', {
     nullable: false,
   })
   position: number;
 
   @ManyToOne(() => User, (user) => user.userImages, {
-    onUpdate: "CASCADE",
+    onUpdate: 'CASCADE',
   })
-  @JoinColumn({ name: "userId" })
+  @JoinColumn({ name: 'userId' })
   user: User;
 
-  @CreateDateColumn({ type: "timestamptz" })
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 
-  @UpdateDateColumn({ type: "timestamptz" })
+  @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;
 }

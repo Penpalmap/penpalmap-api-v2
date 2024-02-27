@@ -1,3 +1,3 @@
-export type UpdateRoomDto = {
+export class UpdateRoomDto {
   memberIds: string[];
-};
+}

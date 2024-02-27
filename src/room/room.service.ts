@@ -1,32 +1,20 @@
-import Room from "./room.model";
-import { DeepPartial, Repository } from "typeorm";
-import { PostgresqlService } from "../postgresql/postgresql.service";
-import { RoomDto } from "./dto/room.dto";
-import { CreateRoomDto } from "./dto/create-room.dto";
-import { UpdateRoomDto } from "./dto/update-room.dto";
-import { QueryRoomDto } from "./dto/query-room.dto";
-import { UserService } from "../user/user.service";
-import { NotFoundException } from "../shared/exception/http4xx.exception";
-import User from "../user/user.model";
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import Room from './room.model';
+import { DeepPartial, Repository } from 'typeorm';
+import { UserService } from '../user/user.service';
+import { RoomDto } from './dto/room.dto';
+import { QueryRoomDto } from './dto/query-room.dto';
+import { CreateRoomDto } from './dto/create-room.dto';
+import { UpdateRoomDto } from './dto/update-room.dto';
+import User from '../user/user.model';
 
+@Injectable()
 export class RoomService {
-  private static instance: RoomService;
-  private readonly roomRepository: Repository<Room>;
-  private readonly userService: UserService;
-
-  private constructor() {
-    const postgresqlService = PostgresqlService.getInstance();
-    this.roomRepository = postgresqlService.getDataSource().getRepository(Room);
-    this.userService = UserService.getInstance();
-  }
-
-  static getInstance(): RoomService {
-    if (!RoomService.instance) {
-      RoomService.instance = new RoomService();
-    }
-
-    return RoomService.instance;
-  }
+  constructor(
+    @InjectRepository(Room) private readonly roomRepository: Repository<Room>,
+    private readonly userService: UserService,
+  ) {}
 
   static roomToDto(room: Room): RoomDto {
     return {
@@ -39,18 +27,18 @@ export class RoomService {
   async getRooms(dto: QueryRoomDto): Promise<RoomDto[]> {
     if (dto.userIds) {
       const query = this.roomRepository
-        .createQueryBuilder("room")
-        .leftJoinAndSelect("room.members", "member");
+        .createQueryBuilder('room')
+        .leftJoinAndSelect('room.members', 'member');
       dto.userIds.forEach((userId) => {
         query.andWhere((queryBuilder) => {
           const subQuery = queryBuilder
             .subQuery()
-            .select("room_sub.id")
-            .from(Room, "room_sub")
-            .leftJoin("room_sub.members", "member_sub")
-            .where("member_sub.id = :userId", { userId })
+            .select('room_sub.id')
+            .from(Room, 'room_sub')
+            .leftJoin('room_sub.members', 'member_sub')
+            .where('member_sub.id = :userId', { userId })
             .getQuery();
-          return "room.id IN " + subQuery;
+          return 'room.id IN ' + subQuery;
         });
       });
       const rooms = await query.getMany();
@@ -73,13 +61,13 @@ export class RoomService {
       },
       order: {
         messages: {
-          createdAt: "DESC",
+          createdAt: 'DESC',
         },
       },
     });
 
     if (!room) {
-      throw new NotFoundException("Room not found");
+      throw new NotFoundException('Room not found');
     }
     return RoomService.roomToDto(room);
   }
@@ -87,7 +75,7 @@ export class RoomService {
   // Create room
   async createRoom(dto: CreateRoomDto): Promise<RoomDto> {
     const members = await Promise.all(
-      dto.memberIds.map((userId) => this.userService.getUserById(userId))
+      dto.memberIds.map((userId) => this.userService.getUserById(userId)),
     );
     const room = await this.roomRepository.save({
       members,
@@ -104,7 +92,7 @@ export class RoomService {
     });
 
     if (!room) {
-      throw new NotFoundException("Room not found");
+      throw new NotFoundException('Room not found');
     }
 
     const updatedRoom = await this.roomRepository.save({

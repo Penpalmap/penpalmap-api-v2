@@ -6,32 +6,32 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
-} from "typeorm";
-import User from "../user/user.model";
+} from 'typeorm';
+import User from '../user/user.model';
 
 @Entity()
 export default class ResetPassword {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @ManyToOne(() => User, (user) => user.resetPasswords, {
-    onDelete: "CASCADE",
-    onUpdate: "CASCADE",
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
   })
-  @JoinColumn({ name: "userId" })
+  @JoinColumn({ name: 'userId' })
   user?: User;
 
-  @Column("varchar", { nullable: false })
+  @Column('varchar', { nullable: false })
   token: string;
 
-  @Column("timestamptz", {
+  @Column('timestamptz', {
     nullable: false,
   })
   expiresAt: Date;
 
-  @CreateDateColumn({ type: "timestamptz" })
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 
-  @UpdateDateColumn({ type: "timestamptz" })
+  @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;
 }

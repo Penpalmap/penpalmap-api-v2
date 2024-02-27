@@ -1,4 +1,4 @@
-export type ResetPasswordDto = {
+export class ResetPasswordDto {
   token: string;
   password: string;
-};
+}

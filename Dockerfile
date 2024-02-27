@@ -23,9 +23,10 @@ RUN npm run build
 # image and set the command to run the application
 FROM node:20.10.0-bookworm-slim AS runner
 
+USER node
 WORKDIR /app
-COPY --from=deps /app/package.json ./
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=build /app/dist ./dist
+COPY --from=deps --chown=node:node /app/package*.json ./
+COPY --from=deps --chown=node:node /app/node_modules ./node_modules/
+COPY --from=build --chown=node:node /app/dist ./dist/
 ENV NODE_ENV=production
 CMD ["npm", "run", "prod"]

@@ -1,3 +1,3 @@
-export type QueryRoomDto = {
+export class QueryRoomDto {
   userIds?: string[];
-};
+}

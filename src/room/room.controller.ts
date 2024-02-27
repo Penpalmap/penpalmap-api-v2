@@ -15,6 +15,7 @@ import { RoomDto } from './dto/room.dto';
 import { QueryRoomDto } from './dto/query-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
 import { AuthGuard } from '@nestjs/passport';
+import { PageDto } from '../shared/pagination/page.dto';
 
 @Controller('rooms')
 @UseGuards(AuthGuard('jwt'))
@@ -28,7 +29,9 @@ export class RoomController {
   }
 
   @Get()
-  public async getRooms(@Query() query: QueryRoomDto): Promise<RoomDto[]> {
+  public async getRooms(
+    @Query() query: QueryRoomDto,
+  ): Promise<PageDto<RoomDto>> {
     return await this.roomService.getRooms(query);
   }
 

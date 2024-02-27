@@ -8,6 +8,7 @@ import { QueryRoomDto } from './dto/query-room.dto';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
 import User from '../user/user.model';
+import { PageDto } from '../shared/pagination/page.dto';
 
 @Injectable()
 export class RoomService {
@@ -24,7 +25,7 @@ export class RoomService {
   }
 
   // Get all rooms
-  async getRooms(dto: QueryRoomDto): Promise<RoomDto[]> {
+  async getRooms(dto: QueryRoomDto): Promise<PageDto<RoomDto>> {
     if (dto.userIds) {
       const query = this.roomRepository
         .createQueryBuilder('room')
@@ -41,12 +42,22 @@ export class RoomService {
           return 'room.id IN ' + subQuery;
         });
       });
-      const rooms = await query.getMany();
-      return rooms.map((room) => RoomService.roomToDto(room));
+      const [rooms, total] = await query
+        .skip(dto.offset)
+        .take(dto.limit)
+        .getManyAndCount();
+      const page = new PageDto<Room>(dto.limit, dto.offset, total, rooms);
+      return page.map((room) =>
+        RoomService.roomToDto({ ...room, members: undefined }),
+      );
     }
 
-    const rooms = await this.roomRepository.find();
-    return rooms.map((room) => RoomService.roomToDto(room));
+    const rooms = await this.roomRepository.find({
+      skip: dto.offset,
+      take: dto.limit,
+    });
+    const page = new PageDto<Room>(dto.limit, dto.offset, rooms.length, rooms);
+    return page.map((room) => RoomService.roomToDto(room));
   }
 
   // Get room by id

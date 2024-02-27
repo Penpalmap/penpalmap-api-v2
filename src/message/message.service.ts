@@ -8,6 +8,7 @@ import { MessageDto } from './dto/message.dto';
 import { QueryMessagesDto } from './dto/query-messages.dto';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
+import { PageDto } from '../shared/pagination/page.dto';
 
 @Injectable()
 export class MessageService {
@@ -30,14 +31,17 @@ export class MessageService {
   }
 
   // Get all messages
-  async getMessages(dto: QueryMessagesDto): Promise<MessageDto[]> {
-    const messages = await this.messageRepository.find({
+  async getMessages(dto: QueryMessagesDto): Promise<PageDto<MessageDto>> {
+    const [messages, total] = await this.messageRepository.findAndCount({
       where: { room: { id: dto.roomId } },
+      skip: dto.offset,
+      take: dto.limit,
       relations: {
         room: true,
       },
     });
-    return messages.map((message) => MessageService.messageToDto(message));
+    const page = new PageDto(dto.limit, dto.offset, total, messages);
+    return page.map((message) => MessageService.messageToDto(message));
   }
 
   // Get message by id

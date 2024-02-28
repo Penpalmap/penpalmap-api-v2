@@ -244,6 +244,7 @@ export class UserService {
       blockedUsers,
       languageUsed: dto.languageUsed,
       geom,
+      isNewUser: dto.isNewUser,
     });
     return UserService.userToDto(newUser);
   }

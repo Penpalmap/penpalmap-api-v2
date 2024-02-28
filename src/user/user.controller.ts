@@ -24,6 +24,7 @@ import { MemoryFile } from '../shared/memory-file.dto';
 import { OrderImagesDto } from './dto/order-images.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { AuthGuard } from '@nestjs/passport';
+import { PageDto } from '../shared/pagination/page.dto';
 
 @Controller('users')
 @UseGuards(AuthGuard('jwt'))
@@ -37,7 +38,9 @@ export class UserController {
   }
 
   @Get()
-  public async getUsers(@Query() query: QueryUserDto): Promise<UserDto[]> {
+  public async getUsers(
+    @Query() query: QueryUserDto,
+  ): Promise<PageDto<UserDto>> {
     return await this.userService.getUsers(query);
   }
 

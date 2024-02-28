@@ -23,6 +23,7 @@ import { UserImageDto } from './dto/user-image.dto';
 import { OrderImagesDto } from './dto/order-images.dto';
 import { onlineUsers } from '../global';
 import { MinioService } from '../minio/minio.service';
+import { PageDto } from '../shared/pagination/page.dto';
 
 @Injectable()
 export class UserService {
@@ -66,14 +67,20 @@ export class UserService {
     };
   }
   // Get all users
-  async getUsers(dto: QueryUserDto): Promise<UserDto[]> {
-    const users = await this.userRepository.find({
+  async getUsers(dto: QueryUserDto): Promise<PageDto<UserDto>> {
+    const [users, total] = await this.userRepository.findAndCount({
       where: {
         email: dto.email,
         googleId: dto.googleId,
       },
+      take: dto.limit,
+      skip: dto.offset,
+      order: {
+        [dto.orderBy]: dto.order,
+      },
     });
-    return users.map(UserService.userToDto);
+    const page = new PageDto<User>(dto.limit, dto.offset, total, users);
+    return page.map(UserService.userToDto);
   }
 
   // Get user

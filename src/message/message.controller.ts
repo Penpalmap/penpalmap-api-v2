@@ -16,6 +16,7 @@ import { QueryMessagesDto } from './dto/query-messages.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
 import { MessageDto } from './dto/message.dto';
 import { AuthGuard } from '@nestjs/passport';
+import { PageDto } from '../shared/pagination/page.dto';
 
 @Controller('messages')
 @UseGuards(AuthGuard('jwt'))
@@ -33,7 +34,7 @@ export class MessageController {
   @Get()
   public async getMessages(
     @Query() query: QueryMessagesDto,
-  ): Promise<MessageDto[]> {
+  ): Promise<PageDto<MessageDto>> {
     return await this.messageService.getMessages(query);
   }
 

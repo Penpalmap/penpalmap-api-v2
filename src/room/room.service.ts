@@ -49,7 +49,7 @@ export class RoomService {
         .getManyAndCount();
       const page = new PageDto<Room>(dto.limit, dto.offset, total, rooms);
       return page.map((room) =>
-        RoomService.roomToDto({ ...room, members: undefined }),
+        RoomService.roomToDto({ ...room, members: room.members }),
       );
     }
 

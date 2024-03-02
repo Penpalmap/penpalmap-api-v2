@@ -12,7 +12,7 @@ import { CreateUserLanguageDto } from './create-user-language.dto';
 
 export class UpdateUserDto {
   @IsOptional()
-  @Length(1, 65535)
+  @Length(0, 65535)
   bio?: string;
 
   @IsOptional()

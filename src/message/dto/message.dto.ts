@@ -5,4 +5,6 @@ export class MessageDto {
   content: string;
   isSeen: boolean;
   sender?: UserDto;
+  createdAt: Date;
+  updatedAt: Date;
 }

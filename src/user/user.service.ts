@@ -24,6 +24,8 @@ import { OrderImagesDto } from './dto/order-images.dto';
 import { onlineUsers } from '../global';
 import { MinioService } from '../minio/minio.service';
 import { PageDto } from '../shared/pagination/page.dto';
+import Message from '../message/message.model';
+import Room from '../room/room.model';
 
 @Injectable()
 export class UserService {
@@ -33,6 +35,10 @@ export class UserService {
     private readonly userLanguageRepository: Repository<UserLanguage>,
     @InjectRepository(UserImage)
     private readonly userImageRepository: Repository<UserImage>,
+    @InjectRepository(Message)
+    private readonly messageRepository: Repository<Message>,
+    @InjectRepository(Room)
+    private readonly roomRepository: Repository<Room>,
     private readonly minioService: MinioService,
   ) {}
 
@@ -284,6 +290,28 @@ export class UserService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
+
+    const roomsOfUser = await this.roomRepository.find({
+      where: {
+        members: {
+          id: user.id,
+        },
+      },
+    });
+
+    await Promise.all(
+      roomsOfUser.map(async (room) => {
+        const messages = await this.messageRepository.find({
+          where: {
+            room: {
+              id: room.id,
+            },
+          },
+        });
+        await this.messageRepository.remove(messages);
+        await this.roomRepository.remove(room);
+      }),
+    );
 
     await Promise.all([
       this.userLanguageRepository.delete({ user }),

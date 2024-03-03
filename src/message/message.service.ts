@@ -27,6 +27,8 @@ export class MessageService {
       sender: message.sender
         ? UserService.userToDto(message.sender)
         : undefined,
+      createdAt: message.createdAt,
+      updatedAt: message.updatedAt,
     };
   }
 
@@ -41,6 +43,7 @@ export class MessageService {
       },
       relations: {
         room: true,
+        sender: true,
       },
     });
     const page = new PageDto(dto.limit, dto.offset, total, messages);

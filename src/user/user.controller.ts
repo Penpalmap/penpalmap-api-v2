@@ -25,6 +25,7 @@ import { OrderImagesDto } from './dto/order-images.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { PageDto } from '../shared/pagination/page.dto';
+import { UserImageDto } from './dto/user-image.dto';
 
 @Controller('users')
 @UseGuards(AuthGuard('jwt'))
@@ -64,7 +65,7 @@ export class UserController {
   }
 
   @Post(':id/images')
-  @HttpCode(204)
+  // @HttpCode(204)
   @UseInterceptors(
     FileInterceptor('profileImage', {
       storage: memoryStorage(),
@@ -75,8 +76,8 @@ export class UserController {
     @Body() body: Omit<UploadImageDto, 'image'>,
     @UploadedFile()
     image: MemoryFile,
-  ): Promise<void> {
-    await this.userService.uploadImage(id, { ...body, image });
+  ): Promise<UserImageDto> {
+    return await this.userService.uploadImage(id, { ...body, image });
   }
 
   @Delete(':id/images/:position')

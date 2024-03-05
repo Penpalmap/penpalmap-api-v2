@@ -64,6 +64,7 @@ export class UserService {
         level: userLanguage.level,
       })),
       isOnline: onlineUsers.has(user.id),
+      updatedAt: user.updatedAt,
     };
   }
   // Get all users

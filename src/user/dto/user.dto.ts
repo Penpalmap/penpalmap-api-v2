@@ -21,4 +21,5 @@ export class UserDto {
   userImages?: UserImageDto[];
   userLanguages?: UserLanguageDto[];
   isOnline: boolean;
+  updatedAt: Date;
 }

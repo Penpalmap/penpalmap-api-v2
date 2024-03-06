@@ -112,10 +112,12 @@ export default class User {
   @JoinTable()
   blockedUsers?: User[];
 
-  @ManyToMany(() => Room, (room) => room.members)
+  @ManyToMany(() => Room, (room) => room.members, { onDelete: 'CASCADE' })
   rooms?: Room[];
 
-  @OneToMany(() => Message, (message) => message.sender)
+  @OneToMany(() => Message, (message) => message.sender, {
+    onDelete: 'CASCADE',
+  })
   messages?: Message[];
 
   @OneToMany(() => UserLanguage, (userLanguage) => userLanguage.user)

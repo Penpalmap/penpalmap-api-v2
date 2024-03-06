@@ -65,7 +65,6 @@ export class UserController {
   }
 
   @Post(':id/images')
-  // @HttpCode(204)
   @UseInterceptors(
     FileInterceptor('profileImage', {
       storage: memoryStorage(),

@@ -90,6 +90,7 @@ export class MessageService {
     const updatedMessage = await this.messageRepository.save({
       ...message,
       content: dto.content,
+      isSeen: dto.isSeen,
     });
     return MessageService.messageToDto(updatedMessage);
   }

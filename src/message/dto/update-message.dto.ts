@@ -4,4 +4,7 @@ export class UpdateMessageDto {
   @IsOptional()
   @Length(1, 65535)
   content?: string;
+
+  @IsOptional()
+  isSeen?: boolean;
 }

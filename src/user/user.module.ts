@@ -6,12 +6,10 @@ import User from './user.model';
 import UserLanguage from './user-language.model';
 import UserImage from './user-image.model';
 import { MinioModule } from '../minio/minio.module';
-import Message from '../message/message.model';
-import Room from '../room/room.model';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, UserLanguage, UserImage, Message, Room]),
+    TypeOrmModule.forFeature([User, UserLanguage, UserImage]),
     MinioModule,
   ],
   exports: [UserService],

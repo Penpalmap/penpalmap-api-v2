@@ -28,12 +28,14 @@ export default class Message {
 
   @ManyToOne(() => User, (user) => user.messages, {
     onUpdate: 'CASCADE',
+    onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'senderId' })
   sender?: User;
 
   @ManyToOne(() => Room, (room) => room.messages, {
     onUpdate: 'CASCADE',
+    onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'roomId' })
   room?: Room;

@@ -34,7 +34,7 @@ export class SocketGateway implements OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() roomId: string,
   ): void {
-    this.handleJoinRoom(client, roomId);
+    this.socketService.handleJoinRoom(client, roomId);
   }
 
   @SubscribeMessage(SocketEventType.LEAVE_ROOM_EVENT)
@@ -42,7 +42,7 @@ export class SocketGateway implements OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() roomId: string,
   ): void {
-    this.handleLeaveRoom(client, roomId);
+    this.socketService.handleLeaveRoom(client, roomId);
   }
 
   @SubscribeMessage(SocketEventType.CREATE_ROOM)
@@ -50,7 +50,7 @@ export class SocketGateway implements OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() data: CreateRoomEventDto,
   ): void {
-    this.handleCreateRoom(client, data);
+    this.socketService.handleCreateRoom(client, data);
   }
 
   @SubscribeMessage(SocketEventType.SEND_MESSAGE_EVENT)
@@ -58,7 +58,7 @@ export class SocketGateway implements OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() data: SendMessageEventDto,
   ): void {
-    this.handleSendMessage(client, data);
+    this.socketService.handleSendMessage(client, data);
   }
 
   @SubscribeMessage(SocketEventType.SEND_SEEN_MESSAGE)
@@ -66,7 +66,7 @@ export class SocketGateway implements OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() data: SendMessageSeenDto,
   ): void {
-    this.handleSendMessageSeen(client, data);
+    this.socketService.handleSendMessageSeen(client, data);
   }
 
   @SubscribeMessage(SocketEventType.TYPING_MESSAGE_EVENT)
@@ -74,7 +74,7 @@ export class SocketGateway implements OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() data: SendTypingEventDto,
   ): void {
-    this.handleSendTyping(client, data);
+    this.socketService.handleSendTyping(client, data);
   }
 
   handleDisconnect(client: Socket): void {

@@ -34,6 +34,7 @@ export default class Message {
 
   @ManyToOne(() => Room, (room) => room.messages, {
     onUpdate: 'CASCADE',
+    onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'roomId' })
   room?: Room;

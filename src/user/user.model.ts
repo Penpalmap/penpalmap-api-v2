@@ -95,6 +95,8 @@ export default class User {
 
   @Column('int4', {
     nullable: true,
+    // Random number between 1 and 26
+    default: () => `floor(random() * 26 + 1)`,
   })
   avatarNumber?: number;
 
@@ -112,7 +114,7 @@ export default class User {
   @JoinTable()
   blockedUsers?: User[];
 
-  @ManyToMany(() => Room, (room) => room.members)
+  @ManyToMany(() => Room, (room) => room.members, { onDelete: 'CASCADE' })
   rooms?: Room[];
 
   @OneToMany(() => Message, (message) => message.sender)

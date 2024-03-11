@@ -95,6 +95,7 @@ export default class User {
 
   @Column('int4', {
     nullable: true,
+    default: () => `floor(random() * 26 + 1)`,
   })
   avatarNumber?: number;
 

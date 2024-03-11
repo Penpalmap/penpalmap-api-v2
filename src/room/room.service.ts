@@ -48,9 +48,7 @@ export class RoomService {
         .orderBy(`room.${dto.orderBy}`, dto.order)
         .getManyAndCount();
       const page = new PageDto<Room>(dto.limit, dto.offset, total, rooms);
-      return page.map((room) =>
-        RoomService.roomToDto(room),
-      );
+      return page.map((room) => RoomService.roomToDto(room));
     }
 
     const rooms = await this.roomRepository.find({
@@ -122,5 +120,20 @@ export class RoomService {
         : room.members,
     });
     return RoomService.roomToDto(updatedRoom);
+  }
+
+  // Delete room
+  async deleteRoom(id: string): Promise<void> {
+    const room = await this.roomRepository.findOne({
+      where: {
+        id,
+      },
+    });
+
+    if (!room) {
+      throw new NotFoundException('Room not found');
+    }
+
+    await this.roomRepository.remove(room);
   }
 }

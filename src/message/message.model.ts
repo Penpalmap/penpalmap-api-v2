@@ -28,6 +28,7 @@ export default class Message {
 
   @ManyToOne(() => User, (user) => user.messages, {
     onUpdate: 'CASCADE',
+    onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'senderId' })
   sender?: User;

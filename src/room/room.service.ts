@@ -48,9 +48,7 @@ export class RoomService {
         .orderBy(`room.${dto.orderBy}`, dto.order)
         .getManyAndCount();
       const page = new PageDto<Room>(dto.limit, dto.offset, total, rooms);
-      return page.map((room) =>
-        RoomService.roomToDto(room),
-      );
+      return page.map((room) => RoomService.roomToDto(room));
     }
 
     const rooms = await this.roomRepository.find({

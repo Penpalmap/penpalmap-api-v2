@@ -21,7 +21,10 @@ export default class Room {
   @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;
 
-  @ManyToMany(() => User, (user) => user.rooms)
+  @ManyToMany(() => User, (user) => user.rooms, {
+    onUpdate: 'CASCADE',
+    onDelete: 'CASCADE',
+  })
   @JoinTable()
   members?: User[];
 

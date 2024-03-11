@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Param,
@@ -46,5 +47,10 @@ export class RoomController {
     @Body() body: UpdateRoomDto,
   ): Promise<RoomDto> {
     return await this.roomService.updateRoom(id, body);
+  }
+
+  @Delete(':id')
+  public async deleteRoom(@Param('id') id: string): Promise<void> {
+    return await this.roomService.deleteRoom(id);
   }
 }

@@ -26,6 +26,8 @@ import { UpdatePasswordDto } from './dto/update-password.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { PageDto } from '../shared/pagination/page.dto';
 import { UserImageDto } from './dto/user-image.dto';
+import { LoggedUser } from '../auth/logged-user.decorator';
+import User from './user.model';
 
 @Controller('users')
 @UseGuards(AuthGuard('jwt'))
@@ -34,34 +36,45 @@ export class UserController {
 
   @Post()
   @HttpCode(201)
-  public async createUser(@Body() body: CreateUserDto): Promise<UserDto> {
-    return await this.userService.createUser(body);
+  public async createUser(
+    @LoggedUser() loggedUser: User,
+    @Body() body: CreateUserDto,
+  ): Promise<UserDto> {
+    return await this.userService.createUser(loggedUser, body);
   }
 
   @Get()
   public async getUsers(
+    @LoggedUser() loggedUser: User,
     @Query() query: QueryUserDto,
   ): Promise<PageDto<UserDto>> {
-    return await this.userService.getUsers(query);
+    return await this.userService.getUsers(loggedUser, query);
   }
 
   @Get(':id')
-  public async getUser(@Param('id') id: string): Promise<UserDto> {
-    return await this.userService.getUserById(id);
+  public async getUser(
+    @LoggedUser() loggedUser: User,
+    @Param('id') id: string,
+  ): Promise<UserDto> {
+    return await this.userService.getUserById(loggedUser, id);
   }
 
   @Patch(':id')
   public async updateUser(
+    @LoggedUser() loggedUser: User,
     @Param('id') id: string,
     @Body() body: UpdateUserDto,
   ): Promise<UserDto> {
-    return await this.userService.updateUser(id, body);
+    return await this.userService.updateUser(loggedUser, id, body);
   }
 
   @Delete(':id')
   @HttpCode(204)
-  public async deleteUser(@Param('id') id: string): Promise<void> {
-    await this.userService.deleteUser(id);
+  public async deleteUser(
+    @LoggedUser() loggedUser: User,
+    @Param('id') id: string,
+  ): Promise<void> {
+    await this.userService.deleteUser(loggedUser, id);
   }
 
   @Post(':id/images')
@@ -71,38 +84,45 @@ export class UserController {
     }),
   )
   public async uploadImage(
+    @LoggedUser() loggedUser: User,
     @Param('id') id: string,
     @Body() body: Omit<UploadImageDto, 'image'>,
     @UploadedFile()
     image: MemoryFile,
   ): Promise<UserImageDto> {
-    return await this.userService.uploadImage(id, { ...body, image });
+    return await this.userService.uploadImage(loggedUser, id, {
+      ...body,
+      image,
+    });
   }
 
   @Delete(':id/images/:position')
   @HttpCode(204)
   public async deleteImage(
+    @LoggedUser() loggedUser: User,
     @Param('id') id: string,
     @Param('position') position: number,
   ): Promise<void> {
-    await this.userService.deleteImage(id, position);
+    await this.userService.deleteImage(loggedUser, id, position);
   }
 
   @Post(':id/images/reorder')
   @HttpCode(204)
   public async reorderImages(
+    @LoggedUser() loggedUser: User,
     @Param('id') id: string,
     @Body() body: OrderImagesDto,
   ): Promise<void> {
-    await this.userService.reorderImages(id, body);
+    await this.userService.reorderImages(loggedUser, id, body);
   }
 
   @Post(':id/password')
   @HttpCode(204)
   public async updateUserPassword(
+    @LoggedUser() loggedUser: User,
     @Param('id') id: string,
     @Body() body: UpdatePasswordDto,
   ): Promise<void> {
-    await this.userService.updateUserPassword(id, body);
+    await this.userService.updateUserPassword(loggedUser, id, body);
   }
 }

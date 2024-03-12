@@ -3,6 +3,7 @@ import {
   IsEmail,
   IsObject,
   IsOptional,
+  IsUUID,
   Length,
   ValidateNested,
 } from 'class-validator';
@@ -43,4 +44,8 @@ export class CreateUserDto {
   @IsObject({ each: true })
   @ValidateNested({ each: true })
   userLanguages?: CreateUserLanguageDto[];
+
+  @IsOptional()
+  @IsUUID('4', { each: true })
+  roleIds?: string[];
 }

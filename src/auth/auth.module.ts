@@ -8,6 +8,7 @@ import { UserModule } from '../user/user.module';
 import { JwtModule } from '@nestjs/jwt';
 import { MailjetModule } from '../mailjet/mailjet.module';
 import { JwtStrategy } from './jwt.strategy';
+import { RoleModule } from '../role/role.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { JwtStrategy } from './jwt.strategy';
     UserModule,
     JwtModule,
     MailjetModule,
+    RoleModule,
   ],
   providers: [AuthService, JwtStrategy],
   controllers: [AuthController],

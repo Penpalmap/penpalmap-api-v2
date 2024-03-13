@@ -423,7 +423,7 @@ export class UserService {
     const imageName = `${uuid()}.webp`;
 
     // Save map image only if it's the first image
-    if (dto.position == 0) {
+    if (dto.position == 1) {
       const mapImage = await sharp(dto.image.buffer)
         .resize(100, 100)
         .webp({ quality: 50 })

@@ -15,6 +15,8 @@ import { MinioModule } from './minio/minio.module';
 import { SocketGateway } from './socket/socket.gateway';
 import { SocketService } from './socket/socket.service';
 import { SocketModule } from './socket/socket.module';
+import { RoleModule } from './role/role.module';
+import { SetupModule } from './setup/setup.module';
 
 @Module({
   imports: [
@@ -52,6 +54,8 @@ import { SocketModule } from './socket/socket.module';
     MailjetModule,
     MinioModule,
     SocketModule,
+    RoleModule,
+    SetupModule,
   ],
   controllers: [AppController],
   providers: [SocketGateway, SocketService],

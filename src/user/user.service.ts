@@ -12,7 +12,7 @@ import User from './user.model';
 import { UserDto } from './dto/user.dto';
 import { QueryUserDto } from './dto/query-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Point, Repository } from 'typeorm';
+import { DeepPartial, In, Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import UserLanguage from './user-language.model';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -24,6 +24,8 @@ import { OrderImagesDto } from './dto/order-images.dto';
 import { onlineUsers } from '../global';
 import { MinioService } from '../minio/minio.service';
 import { PageDto } from '../shared/pagination/page.dto';
+import { RoleService } from '../role/role.service';
+import { isAdmin } from '../shared/authorization.utils';
 
 @Injectable()
 export class UserService {
@@ -34,6 +36,7 @@ export class UserService {
     @InjectRepository(UserImage)
     private readonly userImageRepository: Repository<UserImage>,
     private readonly minioService: MinioService,
+    private readonly roleService: RoleService,
   ) {}
 
   static userToDto(user: User): UserDto {
@@ -53,39 +56,52 @@ export class UserService {
       connections: user.connections,
       languageUsed: user.languageUsed,
       avatarNumber: user.avatarNumber,
-      userImages: user.userImages?.map((userImage) => ({
+      userImages: user.userImages.map((userImage) => ({
         id: userImage.id,
         src: userImage.src,
         position: userImage.position,
       })),
-      userLanguages: user.userLanguages?.map((userLanguage) => ({
+      userLanguages: user.userLanguages.map((userLanguage) => ({
         id: userLanguage.id,
         language: userLanguage.language,
         level: userLanguage.level,
       })),
       isOnline: onlineUsers.has(user.id),
       updatedAt: user.updatedAt,
+      roles: user.roles?.map(RoleService.roleToDto),
     };
   }
   // Get all users
-  async getUsers(dto: QueryUserDto): Promise<PageDto<UserDto>> {
+  async getUsers(
+    loggedUser: User,
+    dto: QueryUserDto,
+  ): Promise<PageDto<UserDto>> {
     const [users, total] = await this.userRepository.findAndCount({
       where: {
         email: dto.email,
         googleId: dto.googleId,
+        roles: dto.roleIds ? { id: In(dto.roleIds) } : undefined,
       },
       take: dto.limit,
       skip: dto.offset,
       order: {
         [dto.orderBy]: dto.order,
       },
+      relations: {
+        roles: Boolean(dto.roleIds),
+      },
     });
     const page = new PageDto<User>(dto.limit, dto.offset, total, users);
-    return page.map(UserService.userToDto);
+    return page.map((user) =>
+      UserService.userToDto({ ...user, roles: undefined }),
+    );
   }
 
   // Get user
-  async getUserById(id: string): Promise<UserDto> {
+  async getUserById(loggedUser: User, id: string): Promise<UserDto> {
+    if (!isAdmin(loggedUser) && loggedUser.id !== id) {
+      throw new ForbiddenException('You cannot read this user');
+    }
     return UserService.userToDto(await this.getUserByIdRaw(id));
   }
 
@@ -96,8 +112,6 @@ export class UserService {
       },
       relations: {
         blockedUsers: true,
-        userImages: true,
-        userLanguages: true,
       },
     });
 
@@ -126,19 +140,30 @@ export class UserService {
   }
 
   // Create user
-  async createUser(dto: CreateUserDto): Promise<UserDto> {
+  async createUser(loggedUser: User, dto: CreateUserDto): Promise<UserDto> {
+    if (!isAdmin(loggedUser)) {
+      throw new ForbiddenException('You cannot create a user');
+    }
     const user = await this.createUserRaw(dto);
     return UserService.userToDto(user);
   }
 
   async createUserRaw(dto: CreateUserDto): Promise<User> {
-    const commonFields: Partial<Omit<User, 'password' | 'googleId'>> = {
+    const roles = dto.roleIds
+      ? await Promise.all(
+          dto.roleIds.map((roleId) => this.roleService.getRoleByIdRaw(roleId)),
+        )
+      : [];
+    const commonFields: DeepPartial<Omit<User, 'password' | 'googleId'>> = {
       bio: dto.bio,
       birthday: dto.birthday,
       email: dto.email,
       gender: dto.gender,
       languageUsed: dto.languageUsed,
       name: dto.name,
+      userLanguages: dto.userLanguages,
+      userImages: [],
+      roles,
     };
 
     if (dto.googleId) {
@@ -197,23 +222,25 @@ export class UserService {
       password: await bcrypt.hash(dto.password, 10),
     });
 
-    if (dto.userLanguages) {
-      await this.userLanguageRepository.insert(
-        dto.userLanguages.map((lang) => ({ ...lang, user: newUser })),
-      );
-    }
-
     return newUser;
   }
 
   // Update user
-  async updateUser(id: string, dto: UpdateUserDto): Promise<UserDto> {
+  async updateUser(
+    loggedUser: User,
+    id: string,
+    dto: UpdateUserDto,
+  ): Promise<UserDto> {
+    if (!isAdmin(loggedUser) && loggedUser.id !== id) {
+      throw new ForbiddenException('You cannot update this user');
+    }
     const user = await this.userRepository.findOne({
       where: {
         id,
       },
       relations: {
         blockedUsers: true,
+        roles: true,
       },
     });
 
@@ -221,38 +248,36 @@ export class UserService {
       throw new NotFoundException('User not found');
     }
 
-    const geom: Point | undefined =
-      dto.latitude && dto.longitude
-        ? {
-            type: 'Point',
-            coordinates: [dto.longitude, dto.latitude],
-          }
-        : user.geom;
-
     const blockedUsers = dto.blockedUserIds
       ? await this.userRepository.find({
           where: { id: In(dto.blockedUserIds) },
         })
       : user.blockedUsers;
 
-    // Ajouter les nouvelles langues
-    if (dto.userLanguages) {
-      await this.userLanguageRepository.delete({ user });
-      await this.userLanguageRepository.insert(
-        dto.userLanguages.map((lang) => ({ ...lang, user })),
-      );
-    }
+    const roles = dto.roleIds
+      ? await Promise.all(
+          dto.roleIds.map((roleId) => this.roleService.getRoleById(roleId)),
+        )
+      : user.roles;
 
     const newUser = await this.userRepository.save({
       ...user,
-      name: dto.name,
-      gender: dto.gender,
-      birthday: dto.birthday,
-      bio: dto.bio,
+      name: dto.name ?? user.name,
+      gender: dto.gender ?? user.gender,
+      birthday: dto.birthday ?? user.birthday,
+      bio: dto.bio ?? user.bio,
+      languageUsed: dto.languageUsed ?? user.languageUsed,
+      geom:
+        dto.latitude && dto.longitude
+          ? {
+              type: 'Point',
+              coordinates: [dto.longitude, dto.latitude],
+            }
+          : user.geom,
+      isNewUser: dto.isNewUser ?? user.isNewUser,
+      userLanguages: dto.userLanguages ?? user.userLanguages,
       blockedUsers,
-      languageUsed: dto.languageUsed,
-      geom,
-      isNewUser: dto.isNewUser,
+      roles,
     });
     return UserService.userToDto(newUser);
   }
@@ -275,7 +300,10 @@ export class UserService {
   }
 
   // Delete user
-  async deleteUser(id: string): Promise<void> {
+  async deleteUser(loggedUser: User, id: string): Promise<void> {
+    if (!isAdmin(loggedUser) && loggedUser.id !== id) {
+      throw new ForbiddenException('You cannot delete this user');
+    }
     const user = await this.userRepository.findOne({
       where: {
         id,
@@ -341,7 +369,14 @@ export class UserService {
     });
   }
 
-  async updateUserPassword(id: string, dto: UpdatePasswordDto): Promise<void> {
+  async updateUserPassword(
+    loggedUser: User,
+    id: string,
+    dto: UpdatePasswordDto,
+  ): Promise<void> {
+    if (!isAdmin(loggedUser) && loggedUser.id !== id) {
+      throw new ForbiddenException('You cannot update this user');
+    }
     const user = await this.userRepository.findOne({
       where: {
         id,
@@ -373,9 +408,13 @@ export class UserService {
   }
 
   async uploadImage(
+    loggedUser: User,
     userId: string,
     dto: UploadImageDto,
   ): Promise<UserImageDto> {
+    if (!isAdmin(loggedUser) && loggedUser.id !== userId) {
+      throw new ForbiddenException('You cannot upload an image for this user');
+    }
     const mapBucketName = 'map';
     const profilsBucketName = 'profils';
 
@@ -395,6 +434,9 @@ export class UserService {
         user: {
           id: userId,
         },
+      },
+      relations: {
+        user: true,
       },
     });
     if (oldImage) {
@@ -463,7 +505,14 @@ export class UserService {
     };
   }
 
-  async reorderImages(id: string, dto: OrderImagesDto): Promise<void> {
+  async reorderImages(
+    loggedUser: User,
+    id: string,
+    dto: OrderImagesDto,
+  ): Promise<void> {
+    if (!isAdmin(loggedUser) && loggedUser.id !== id) {
+      throw new ForbiddenException('You cannot reorder images for this user');
+    }
     const user = await this.userRepository.findOne({
       where: {
         id,
@@ -495,7 +544,14 @@ export class UserService {
     );
   }
 
-  async deleteImage(id: string, position: number): Promise<void> {
+  async deleteImage(
+    loggedUser: User,
+    id: string,
+    position: number,
+  ): Promise<void> {
+    if (!isAdmin(loggedUser) && loggedUser.id !== id) {
+      throw new ForbiddenException('You cannot delete an image for this user');
+    }
     const user = await this.userRepository.findOne({
       where: {
         id,
@@ -529,7 +585,16 @@ export class UserService {
     await this.minioService.deleteObject(bucketName, objectName);
   }
 
-  async setDefaultImage(id: string, position: number): Promise<void> {
+  async setDefaultImage(
+    loggedUser: User,
+    id: string,
+    position: number,
+  ): Promise<void> {
+    if (!isAdmin(loggedUser) && loggedUser.id !== id) {
+      throw new ForbiddenException(
+        'You cannot set a default image for this user',
+      );
+    }
     const user = await this.userRepository.findOne({
       where: {
         id,

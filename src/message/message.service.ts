@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import Message from './message.model';
 import { Repository } from 'typeorm';
@@ -9,6 +13,8 @@ import { QueryMessagesDto } from './dto/query-messages.dto';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
 import { PageDto } from '../shared/pagination/page.dto';
+import User from '../user/user.model';
+import { isAdmin } from '../shared/authorization.utils';
 
 @Injectable()
 export class MessageService {
@@ -33,9 +39,15 @@ export class MessageService {
   }
 
   // Get all messages
-  async getMessages(dto: QueryMessagesDto): Promise<PageDto<MessageDto>> {
+  async getMessages(
+    loggedUser: User,
+    dto: QueryMessagesDto,
+  ): Promise<PageDto<MessageDto>> {
     const [messages, total] = await this.messageRepository.findAndCount({
-      where: { room: { id: dto.roomId } },
+      where: {
+        room: { id: dto.roomId },
+        sender: isAdmin(loggedUser) ? undefined : { id: loggedUser.id },
+      },
       skip: dto.offset,
       take: dto.limit,
       order: {
@@ -51,7 +63,7 @@ export class MessageService {
   }
 
   // Get message by id
-  async getMessageById(id: string): Promise<MessageDto> {
+  async getMessageById(loggedUser: User, id: string): Promise<MessageDto> {
     const message = await this.messageRepository.findOne({
       where: { id },
       relations: {
@@ -61,13 +73,22 @@ export class MessageService {
     if (!message) {
       throw new NotFoundException('Message not found');
     }
+    if (!isAdmin(loggedUser) && message.sender?.id !== loggedUser.id) {
+      throw new ForbiddenException('You cannot access this message');
+    }
     return MessageService.messageToDto(message);
   }
 
   // Create message
-  async createMessage(dto: CreateMessageDto): Promise<MessageDto> {
-    const sender = await this.userService.getUserById(dto.senderId);
-    const room = await this.roomService.getRoomById(dto.roomId);
+  async createMessage(
+    loggedUser: User,
+    dto: CreateMessageDto,
+  ): Promise<MessageDto> {
+    if (!isAdmin(loggedUser) && loggedUser.id !== dto.senderId) {
+      throw new ForbiddenException('You cannot send a message as another user');
+    }
+    const sender = await this.userService.getUserById(loggedUser, dto.senderId);
+    const room = await this.roomService.getRoomById(loggedUser, dto.roomId);
 
     const message = await this.messageRepository.save({
       content: dto.content,
@@ -78,13 +99,26 @@ export class MessageService {
   }
 
   // Update message
-  async updateMessage(id: string, dto: UpdateMessageDto): Promise<MessageDto> {
+  async updateMessage(
+    loggedUser: User,
+    id: string,
+    dto: UpdateMessageDto,
+  ): Promise<MessageDto> {
     const message = await this.messageRepository.findOne({
       where: { id },
+      relations: {
+        sender: true,
+      },
     });
 
     if (!message) {
       throw new NotFoundException('Message not found');
+    }
+    if (!isAdmin(loggedUser) && message.sender?.id !== loggedUser.id) {
+      throw new ForbiddenException('You cannot update this message');
+    }
+    if (!isAdmin(loggedUser) && !dto.isSeen && message.isSeen) {
+      throw new ForbiddenException('You cannot mark this message as unseen');
     }
 
     const updatedMessage = await this.messageRepository.save({
@@ -96,13 +130,19 @@ export class MessageService {
   }
 
   // Delete message
-  async deleteMessage(id: string): Promise<void> {
+  async deleteMessage(loggedUser: User, id: string): Promise<void> {
     const message = await this.messageRepository.findOne({
       where: { id },
+      relations: {
+        sender: true,
+      },
     });
 
     if (!message) {
       throw new NotFoundException('Message not found');
+    }
+    if (!isAdmin(loggedUser) && message.sender?.id !== loggedUser.id) {
+      throw new ForbiddenException('You cannot delete this message');
     }
 
     await this.messageRepository.remove(message);

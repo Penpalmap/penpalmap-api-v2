@@ -1,6 +1,7 @@
 import { Point } from 'typeorm';
 import { UserImageDto } from './user-image.dto';
 import { UserLanguageDto } from './user-language.dto';
+import { RoleDto } from '../../role/dto/role.dto';
 
 export class UserDto {
   id: string;
@@ -18,8 +19,9 @@ export class UserDto {
   connections: number;
   languageUsed?: string;
   avatarNumber?: number;
-  userImages?: UserImageDto[];
-  userLanguages?: UserLanguageDto[];
+  userImages: UserImageDto[];
+  userLanguages: UserLanguageDto[];
   isOnline: boolean;
   updatedAt: Date;
+  roles?: RoleDto[];
 }

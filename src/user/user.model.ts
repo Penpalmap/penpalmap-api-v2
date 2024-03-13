@@ -15,6 +15,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import Role from '../role/role.model';
 
 @Entity()
 export default class User {
@@ -55,7 +56,6 @@ export default class User {
   })
   points: number;
 
-  // TODO: rename this field to mapImage
   @Column('varchar', {
     nullable: true,
   })
@@ -99,15 +99,11 @@ export default class User {
   })
   avatarNumber?: number;
 
-  @CreateDateColumn({ type: 'timestamptz' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ type: 'timestamptz' })
-  updatedAt: Date;
-
-  // TODO: rename this field to profileImages
-  @OneToMany(() => UserImage, (userImage) => userImage.user)
-  userImages?: UserImage[];
+  @OneToMany(() => UserImage, (userImage) => userImage.user, {
+    cascade: true,
+    eager: true,
+  })
+  userImages: UserImage[];
 
   @ManyToMany(() => User, (user) => user.blockedUsers)
   @JoinTable()
@@ -122,12 +118,24 @@ export default class User {
   @OneToMany(() => Message, (message) => message.sender)
   messages?: Message[];
 
-  @OneToMany(() => UserLanguage, (userLanguage) => userLanguage.user)
-  userLanguages?: UserLanguage[];
+  @OneToMany(() => UserLanguage, (userLanguage) => userLanguage.user, {
+    cascade: true,
+    eager: true,
+  })
+  userLanguages: UserLanguage[];
 
   @OneToMany(() => ResetPassword, (resetPassword) => resetPassword.user)
   resetPasswords?: ResetPassword[];
 
   @OneToMany(() => RefreshTokens, (refreshTokens) => refreshTokens.user)
   refreshTokens?: RefreshTokens[];
+
+  @ManyToMany(() => Role, (role) => role.users)
+  roles?: Role[];
+
+  @CreateDateColumn({ type: 'timestamptz' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ type: 'timestamptz' })
+  updatedAt: Date;
 }

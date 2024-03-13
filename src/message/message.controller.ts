@@ -17,6 +17,8 @@ import { UpdateMessageDto } from './dto/update-message.dto';
 import { MessageDto } from './dto/message.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { PageDto } from '../shared/pagination/page.dto';
+import { LoggedUser } from '../auth/logged-user.decorator';
+import User from '../user/user.model';
 
 @Controller('messages')
 @UseGuards(AuthGuard('jwt'))
@@ -26,34 +28,43 @@ export class MessageController {
   @Post()
   @HttpCode(201)
   public async createMessage(
+    @LoggedUser() loggedUser: User,
     @Body() body: CreateMessageDto,
   ): Promise<MessageDto> {
-    return await this.messageService.createMessage(body);
+    return await this.messageService.createMessage(loggedUser, body);
   }
 
   @Get()
   public async getMessages(
+    @LoggedUser() loggedUser: User,
     @Query() query: QueryMessagesDto,
   ): Promise<PageDto<MessageDto>> {
-    return await this.messageService.getMessages(query);
+    return await this.messageService.getMessages(loggedUser, query);
   }
 
   @Get(':id')
-  public async getMessage(@Param('id') id: string): Promise<MessageDto> {
-    return await this.messageService.getMessageById(id);
+  public async getMessage(
+    @LoggedUser() loggedUser: User,
+    @Param('id') id: string,
+  ): Promise<MessageDto> {
+    return await this.messageService.getMessageById(loggedUser, id);
   }
 
   @Patch(':id')
   public async updateMessage(
+    @LoggedUser() loggedUser: User,
     @Param('id') id: string,
     @Body() body: UpdateMessageDto,
   ): Promise<MessageDto> {
-    return await this.messageService.updateMessage(id, body);
+    return await this.messageService.updateMessage(loggedUser, id, body);
   }
 
   @Delete(':id')
   @HttpCode(204)
-  public async deleteMessage(@Param('id') id: string): Promise<void> {
-    await this.messageService.deleteMessage(id);
+  public async deleteMessage(
+    @LoggedUser() loggedUser: User,
+    @Param('id') id: string,
+  ): Promise<void> {
+    await this.messageService.deleteMessage(loggedUser, id);
   }
 }

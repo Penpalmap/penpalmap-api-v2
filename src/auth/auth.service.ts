@@ -25,6 +25,7 @@ import { JwtService } from '@nestjs/jwt';
 import RefreshToken from './refresh-token.model';
 import { OAuth2Client } from 'google-auth-library';
 import { MailjetService } from '../mailjet/mailjet.service';
+import { RoleService } from '../role/role.service';
 
 @Injectable()
 export class AuthService {
@@ -38,6 +39,7 @@ export class AuthService {
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
     private readonly mailjetService: MailjetService,
+    private readonly roleService: RoleService,
   ) {
     this.googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
   }
@@ -123,10 +125,21 @@ export class AuthService {
     if (payload.password !== payload.passwordConfirmation) {
       throw new BadRequestException('Passwords do not match');
     }
+
+    const userRole = await this.roleService.getRoleByNameRaw(
+      RoleService.USER_ROLE_NAME,
+    );
+    if (!userRole) {
+      throw new InternalServerErrorException(
+        'User role not found. Please contact the administrator',
+      );
+    }
+
     const userCreated = await this.userService.createUserRaw({
       name: payload.name,
       email: payload.email,
       password: payload.password,
+      roleIds: [userRole.id],
     });
 
     const accessToken = this.generateAccessToken(userCreated);
@@ -169,10 +182,20 @@ export class AuthService {
       throw new BadGatewayException('Error getting email');
     }
 
+    const userRole = await this.roleService.getRoleByNameRaw(
+      RoleService.USER_ROLE_NAME,
+    );
+    if (!userRole) {
+      throw new InternalServerErrorException(
+        'User role not found. Please contact the administrator',
+      );
+    }
+
     const newUser = await this.userService.createUserRaw({
       name: firstname,
       email: payload.email,
       googleId: payload.sub,
+      roleIds: [userRole.id],
     });
 
     const accessToken = this.generateAccessToken(newUser);

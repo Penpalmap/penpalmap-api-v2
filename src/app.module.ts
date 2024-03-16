@@ -12,11 +12,9 @@ import { DataSource } from 'typeorm';
 import { MailjetModule } from './mailjet/mailjet.module';
 import { AppController } from './app.controller';
 import { MinioModule } from './minio/minio.module';
-import { SocketGateway } from './socket/socket.gateway';
-import { SocketService } from './socket/socket.service';
-import { SocketModule } from './socket/socket.module';
 import { RoleModule } from './role/role.module';
 import { SetupModule } from './setup/setup.module';
+import { SocketModule } from './socket/socket.module';
 
 @Module({
   imports: [
@@ -53,11 +51,10 @@ import { SetupModule } from './setup/setup.module';
     MapModule,
     MailjetModule,
     MinioModule,
-    SocketModule,
     RoleModule,
     SetupModule,
+    SocketModule,
   ],
   controllers: [AppController],
-  providers: [SocketGateway, SocketService],
 })
 export class AppModule {}

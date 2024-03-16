@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import Message from './message.model';
 import { Repository } from 'typeorm';
+import { v4 as uuid } from 'uuid';
 import { UserService } from '../user/user.service';
 import { RoomService } from '../room/room.service';
 import { MessageDto } from './dto/message.dto';
@@ -15,6 +16,15 @@ import { UpdateMessageDto } from './dto/update-message.dto';
 import { PageDto } from '../shared/pagination/page.dto';
 import User from '../user/user.model';
 import { isAdmin } from '../shared/authorization.utils';
+import { SocketService } from '../socket/socket.service';
+import {
+  MESSAGE_SENT_EVENT,
+  MessageSentEventDto,
+} from './dto/message-sent-event.dto';
+import {
+  MESSAGE_SEEN_EVENT,
+  MessageSeenEventDto,
+} from './dto/message-seen-event.dto';
 
 @Injectable()
 export class MessageService {
@@ -23,6 +33,7 @@ export class MessageService {
     private readonly messageRepository: Repository<Message>,
     private readonly userService: UserService,
     private readonly roomService: RoomService,
+    private readonly socketService: SocketService,
   ) {}
 
   static messageToDto(message: Message): MessageDto {
@@ -95,6 +106,20 @@ export class MessageService {
       sender,
       room,
     });
+
+    // Send event to clients
+    const messageSentEvent: MessageSentEventDto = {
+      eventId: uuid(),
+      messageId: message.id,
+    };
+    const messageSentEventReceivers =
+      room.members?.map((receiver) => receiver.id) ?? [];
+    this.socketService.sendMessage(
+      MESSAGE_SENT_EVENT,
+      messageSentEvent,
+      messageSentEventReceivers,
+    );
+
     return MessageService.messageToDto(message);
   }
 
@@ -108,6 +133,9 @@ export class MessageService {
       where: { id },
       relations: {
         sender: true,
+        room: {
+          members: true,
+        },
       },
     });
 
@@ -126,6 +154,22 @@ export class MessageService {
       content: dto.content,
       isSeen: dto.isSeen,
     });
+
+    // Send event to clients
+    if (dto.isSeen && !message.isSeen) {
+      const messageSeenEvent: MessageSeenEventDto = {
+        eventId: uuid(),
+        messageId: id,
+      };
+      const messageSeenEventReceivers =
+        message.room?.members?.map((member) => member.id) ?? [];
+      this.socketService.sendMessage(
+        MESSAGE_SEEN_EVENT,
+        messageSeenEvent,
+        messageSeenEventReceivers,
+      );
+    }
+
     return MessageService.messageToDto(updatedMessage);
   }
 

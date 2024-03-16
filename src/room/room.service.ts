@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import Room from './room.model';
 import { DeepPartial, Repository } from 'typeorm';
+import { v4 as uuid } from 'uuid';
 import { UserService } from '../user/user.service';
 import { RoomDto } from './dto/room.dto';
 import { QueryRoomDto } from './dto/query-room.dto';
@@ -14,12 +15,24 @@ import { UpdateRoomDto } from './dto/update-room.dto';
 import User from '../user/user.model';
 import { PageDto } from '../shared/pagination/page.dto';
 import { isAdmin } from '../shared/authorization.utils';
+import { SocketService } from '../socket/socket.service';
+import {
+  ROOM_CREATED_EVENT,
+  RoomCreatedEventDto,
+} from './dto/room-created-event.dto';
+import {
+  USER_TYPING_EVENT,
+  UserTypingEventDto,
+} from './dto/user-typing-event.dto';
+import { Socket } from 'socket.io';
+import { SocketErrorDto } from '../shared/socket/socket-error.dto';
 
 @Injectable()
 export class RoomService {
   constructor(
     @InjectRepository(Room) private readonly roomRepository: Repository<Room>,
     private readonly userService: UserService,
+    private readonly socketService: SocketService,
   ) {}
 
   static roomToDto(room: Room): RoomDto {
@@ -122,13 +135,25 @@ export class RoomService {
       throw new ForbiddenException('You can only create rooms with yourself');
     }
     const members = await Promise.all(
-      dto.memberIds.map((userId) =>
-        this.userService.getUserById(loggedUser, userId),
-      ),
+      dto.memberIds.map((userId) => this.userService.getUserByIdRaw(userId)),
     );
     const room = await this.roomRepository.save({
       members,
     });
+
+    // Send event to clients
+    const roomCreatedEvent: RoomCreatedEventDto = {
+      eventId: uuid(),
+      userId: loggedUser.id,
+      roomId: room.id,
+    };
+    const roomCreatedEventReceivers = dto.memberIds;
+    this.socketService.sendMessage(
+      ROOM_CREATED_EVENT,
+      roomCreatedEvent,
+      roomCreatedEventReceivers,
+    );
+
     return RoomService.roomToDto(room);
   }
 
@@ -168,6 +193,28 @@ export class RoomService {
           }))
         : room.members,
     });
+
+    // Send event to new clients in this room
+    if (
+      dto.memberIds &&
+      dto.memberIds != room.members?.map((member) => member.id)
+    ) {
+      const roomMemberIds = new Set(room.members?.map((member) => member.id));
+      const roomCreatedEvent: RoomCreatedEventDto = {
+        eventId: uuid(),
+        userId: loggedUser.id,
+        roomId: room.id,
+      };
+      const roomCreatedEventReceivers = dto.memberIds.filter((memberId) =>
+        roomMemberIds.has(memberId),
+      );
+      this.socketService.sendMessage(
+        ROOM_CREATED_EVENT,
+        roomCreatedEvent,
+        roomCreatedEventReceivers,
+      );
+    }
+
     return RoomService.roomToDto(updatedRoom);
   }
 
@@ -193,5 +240,45 @@ export class RoomService {
     }
 
     await this.roomRepository.remove(room);
+  }
+
+  async notifyUserTyping(
+    client: Socket,
+    dto: UserTypingEventDto,
+  ): Promise<void> {
+    if (!SocketService.isHandledByThisClient(dto.userId, client)) {
+      throw new ForbiddenException(
+        new SocketErrorDto(
+          dto.eventId,
+          'You cannot notify typing for this user',
+        ),
+      );
+    }
+    const room = await this.roomRepository.findOne({
+      where: {
+        id: dto.roomId,
+      },
+      relations: {
+        members: true,
+      },
+    });
+    if (!room) {
+      throw new NotFoundException(
+        new SocketErrorDto(dto.eventId, 'Room not found'),
+      );
+    }
+    if (!room.members?.map((member) => member.id).includes(dto.userId)) {
+      throw new ForbiddenException(
+        new SocketErrorDto(
+          dto.eventId,
+          'You cannot notify typing in this room',
+        ),
+      );
+    }
+    this.socketService.sendMessage(
+      USER_TYPING_EVENT,
+      dto,
+      room.members.map((member) => member.id).filter((id) => id !== dto.userId),
+    );
   }
 }

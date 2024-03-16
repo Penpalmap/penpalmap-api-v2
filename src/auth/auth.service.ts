@@ -4,7 +4,9 @@ import {
   ForbiddenException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
@@ -26,10 +28,17 @@ import RefreshToken from './refresh-token.model';
 import { OAuth2Client } from 'google-auth-library';
 import { MailjetService } from '../mailjet/mailjet.service';
 import { RoleService } from '../role/role.service';
+import { LoggedInEventDto } from './dto/logged-in-event.dto';
+import { Socket } from 'socket.io';
+import { onlineUsers } from '../global';
+import { JwtPayloadDto } from './dto/jwt-payload.dto';
+import { LoggedOutEventDto } from './dto/logged-out-event.dto';
+import { SocketErrorDto } from '../shared/socket/socket-error.dto';
 
 @Injectable()
 export class AuthService {
   private readonly googleClient: OAuth2Client;
+  private readonly logger = new Logger(AuthService.name);
 
   constructor(
     @InjectRepository(ResetPassword)
@@ -237,6 +246,49 @@ export class AuthService {
       this.storeRefreshTokenInDB(storedToken.user, refreshToken),
     ]);
     return { accessToken, refreshToken };
+  }
+
+  async loginSocketUser(client: Socket, dto: LoggedInEventDto): Promise<void> {
+    try {
+      this.jwtService.verify(dto.accessToken, {
+        secret: process.env.ACCESS_TOKEN_SECRET ?? 'secret',
+      });
+      const decodedJwt = this.jwtService.decode<JwtPayloadDto>(dto.accessToken);
+      onlineUsers.set(decodedJwt.userId, client.id);
+      this.logger.debug(
+        `User ${decodedJwt.userId} logged in (client: ${client.id})`,
+      );
+    } catch (error) {
+      throw new UnauthorizedException(
+        new SocketErrorDto(dto.eventId, 'Invalid accessToken'),
+      );
+    }
+  }
+
+  async logoutSocketUser(
+    client: Socket,
+    dto?: LoggedOutEventDto,
+  ): Promise<void> {
+    if (dto) {
+      if (!onlineUsers.has(dto.userId)) {
+        throw new NotFoundException(
+          new SocketErrorDto(dto.eventId, 'User not found'),
+        );
+      }
+      if (onlineUsers.get(dto.userId) !== client.id) {
+        throw new ForbiddenException(
+          new SocketErrorDto(dto.eventId, 'Invalid client'),
+        );
+      }
+      onlineUsers.delete(dto.userId);
+      this.logger.debug(`User ${dto.userId} logged out (client: ${client.id})`);
+    } else {
+      const userIds = Array.from(onlineUsers.entries())
+        .filter(([_, value]) => value === client.id)
+        .map(([userId, _]) => userId);
+      userIds.forEach((userId) => onlineUsers.delete(userId));
+      this.logger.debug(`User(s) ${userIds} logged out (client: ${client.id})`);
+    }
   }
 
   private async storeRefreshTokenInDB(

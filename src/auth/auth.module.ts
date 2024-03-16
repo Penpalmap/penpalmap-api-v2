@@ -9,6 +9,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { MailjetModule } from '../mailjet/mailjet.module';
 import { JwtStrategy } from './jwt.strategy';
 import { RoleModule } from '../role/role.module';
+import { AuthGateway } from './auth.gateway';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { RoleModule } from '../role/role.module';
     MailjetModule,
     RoleModule,
   ],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, AuthGateway],
   controllers: [AuthController],
 })
 export class AuthModule {}

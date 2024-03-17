@@ -6,7 +6,10 @@ import { MessageModule } from './message/message.module';
 import { MapModule } from './map/map.module';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { addTransactionalDataSource } from 'typeorm-transactional';
+import {
+  addTransactionalDataSource,
+  getDataSourceByName,
+} from 'typeorm-transactional';
 import { JwtModule } from '@nestjs/jwt';
 import { DataSource } from 'typeorm';
 import { MailjetModule } from './mailjet/mailjet.module';
@@ -37,7 +40,10 @@ import { SocketModule } from './socket/socket.module';
           throw new Error('Invalid options passed');
         }
 
-        return addTransactionalDataSource(new DataSource(options));
+        return (
+          getDataSourceByName('default') ||
+          addTransactionalDataSource(new DataSource(options))
+        );
       },
     }),
     MinioModule,

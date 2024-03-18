@@ -48,9 +48,7 @@ export class RoomService {
     dto: QueryRoomDto,
   ): Promise<PageDto<RoomDto>> {
     const generateDto = (page: PageDto<Room>): PageDto<RoomDto> =>
-      page.map((room) =>
-        RoomService.roomToDto({ ...room, members: undefined }),
-      );
+      page.map((room) => RoomService.roomToDto(room));
 
     if (dto.userIds) {
       if (

@@ -56,8 +56,10 @@ export class MessageService {
   ): Promise<PageDto<MessageDto>> {
     const [messages, total] = await this.messageRepository.findAndCount({
       where: {
-        room: { id: dto.roomId },
-        sender: isAdmin(loggedUser) ? undefined : { id: loggedUser.id },
+        room: {
+          id: dto.roomId,
+          members: isAdmin(loggedUser) ? undefined : { id: loggedUser.id },
+        },
       },
       skip: dto.offset,
       take: dto.limit,
@@ -65,7 +67,9 @@ export class MessageService {
         [dto.orderBy]: dto.order,
       },
       relations: {
-        room: true,
+        room: {
+          members: true,
+        },
         sender: true,
       },
     });

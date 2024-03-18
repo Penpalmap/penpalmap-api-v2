@@ -44,6 +44,7 @@ export class MessageService {
       sender: message.sender
         ? UserService.userToDto(message.sender)
         : undefined,
+      room: message.room ? RoomService.roomToDto(message.room) : undefined,
       createdAt: message.createdAt,
       updatedAt: message.updatedAt,
     };
@@ -74,7 +75,9 @@ export class MessageService {
       },
     });
     const page = new PageDto(dto.limit, dto.offset, total, messages);
-    return page.map((message) => MessageService.messageToDto(message));
+    return page.map((message) =>
+      MessageService.messageToDto({ ...message, room: undefined }),
+    );
   }
 
   // Get message by id
@@ -83,6 +86,7 @@ export class MessageService {
       where: { id },
       relations: {
         sender: true,
+        room: true,
       },
     });
     if (!message) {

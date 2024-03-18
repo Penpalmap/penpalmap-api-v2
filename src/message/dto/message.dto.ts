@@ -1,3 +1,4 @@
+import { RoomDto } from '../../room/dto/room.dto';
 import { UserDto } from '../../user/dto/user.dto';
 
 export class MessageDto {
@@ -5,6 +6,7 @@ export class MessageDto {
   content: string;
   isSeen: boolean;
   sender?: UserDto;
+  room?: RoomDto;
   createdAt: Date;
   updatedAt: Date;
 }

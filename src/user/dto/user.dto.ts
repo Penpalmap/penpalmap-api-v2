@@ -19,8 +19,8 @@ export class UserDto {
   connections: number;
   languageUsed?: string;
   avatarNumber?: number;
-  userImages: UserImageDto[];
-  userLanguages: UserLanguageDto[];
+  userImages?: UserImageDto[];
+  userLanguages?: UserLanguageDto[];
   isOnline: boolean;
   updatedAt: Date;
   roles?: RoleDto[];

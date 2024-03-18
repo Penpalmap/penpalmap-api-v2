@@ -103,7 +103,7 @@ export default class User {
     cascade: true,
     eager: true,
   })
-  userImages: UserImage[];
+  userImages?: UserImage[];
 
   @ManyToMany(() => User, (user) => user.blockedUsers)
   @JoinTable()
@@ -122,7 +122,7 @@ export default class User {
     cascade: true,
     eager: true,
   })
-  userLanguages: UserLanguage[];
+  userLanguages?: UserLanguage[];
 
   @OneToMany(() => ResetPassword, (resetPassword) => resetPassword.user)
   resetPasswords?: ResetPassword[];

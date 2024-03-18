@@ -56,12 +56,12 @@ export class UserService {
       connections: user.connections,
       languageUsed: user.languageUsed,
       avatarNumber: user.avatarNumber,
-      userImages: user.userImages.map((userImage) => ({
+      userImages: user.userImages?.map((userImage) => ({
         id: userImage.id,
         src: userImage.src,
         position: userImage.position,
       })),
-      userLanguages: user.userLanguages.map((userLanguage) => ({
+      userLanguages: user.userLanguages?.map((userLanguage) => ({
         id: userLanguage.id,
         language: userLanguage.language,
         level: userLanguage.level,

@@ -156,14 +156,27 @@ export class MessageService {
     }
 
     const membersId = message.room?.members?.map((member) => member.id);
+    // only admin or the sender can update the content of the message
     if (
       !isAdmin(loggedUser) &&
       message.sender?.id !== loggedUser.id &&
       dto.content &&
-      membersId?.includes(loggedUser.id)
+      dto.content !== message.content
     ) {
-      throw new ForbiddenException('You cannot update this message');
+      throw new ForbiddenException(
+        'You cannot update the content of this message',
+      );
     }
+    // only admin or the members of the room can set the message as seen
+    if (
+      !isAdmin(loggedUser) &&
+      !membersId?.includes(loggedUser.id) &&
+      dto.isSeen &&
+      !message.isSeen
+    ) {
+      throw new ForbiddenException('You cannot access this message');
+    }
+    // only admin can set the message as unseen
     if (!isAdmin(loggedUser) && !dto.isSeen && message.isSeen) {
       throw new ForbiddenException('You cannot mark this message as unseen');
     }

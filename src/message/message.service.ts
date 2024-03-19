@@ -86,18 +86,17 @@ export class MessageService {
       where: { id },
       relations: {
         sender: true,
-        room: true,
+        room: {
+          members: true,
+        },
       },
     });
     if (!message) {
       throw new NotFoundException('Message not found');
     }
-    if (
-      !isAdmin(loggedUser) &&
-      message.room?.members
-        ?.map((member) => member.id)
-        .indexOf(loggedUser.id) === -1
-    ) {
+
+    const membersId = message.room?.members?.map((member) => member.id);
+    if (!isAdmin(loggedUser) && !membersId?.includes(loggedUser.id)) {
       throw new ForbiddenException('You cannot access this message');
     }
     return MessageService.messageToDto(message);
@@ -155,10 +154,13 @@ export class MessageService {
     if (!message) {
       throw new NotFoundException('Message not found');
     }
+
+    const membersId = message.room?.members?.map((member) => member.id);
     if (
       !isAdmin(loggedUser) &&
       message.sender?.id !== loggedUser.id &&
-      dto.content
+      dto.content &&
+      membersId?.includes(loggedUser.id)
     ) {
       throw new ForbiddenException('You cannot update this message');
     }

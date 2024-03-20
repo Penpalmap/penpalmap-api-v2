@@ -26,13 +26,14 @@ jobs:
       - id: update-package-version
         name: Update package.json version
         run: |
-          # Update package.json version with yq
-          sudo snap install yq
-          yq -i '.version = "${{ steps.calc-new-version.outputs.new_tag }}"' package.json
+          # Update package.json version with jq
+          jq -i '.version = "${{ steps.calc-new-version.outputs.new_tag }}"' package.json > package.json.tmp
+          mv package.json.tmp package.json
       - id: update-chart-version
         name: Update Chart.yaml version
         run: |
           # Update Chart.yaml version with yq
+          sudo snap install yq
           yq -i '.version = "${{ steps.calc-new-version.outputs.new_tag }}"' charts/penpalmap-api-v2/Chart.yaml
           yq -i '.appVersion = "${{ steps.calc-new-version.outputs.new_tag }}"' charts/penpalmap-api-v2/Chart.yaml
       - id: commit

@@ -72,10 +72,7 @@ export class UserService {
     };
   }
   // Get all users
-  async getUsers(
-    loggedUser: User,
-    dto: QueryUserDto,
-  ): Promise<PageDto<UserDto>> {
+  async getUsers(dto: QueryUserDto): Promise<PageDto<UserDto>> {
     const [users, total] = await this.userRepository.findAndCount({
       where: {
         email: dto.email,

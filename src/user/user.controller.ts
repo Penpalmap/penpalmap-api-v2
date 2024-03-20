@@ -45,17 +45,13 @@ export class UserController {
 
   @Get()
   public async getUsers(
-    @LoggedUser() loggedUser: User,
     @Query() query: QueryUserDto,
   ): Promise<PageDto<UserDto>> {
-    return await this.userService.getUsers(loggedUser, query);
+    return await this.userService.getUsers(query);
   }
 
   @Get(':id')
-  public async getUser(
-    @LoggedUser() loggedUser: User,
-    @Param('id') id: string,
-  ): Promise<UserDto> {
+  public async getUser(@Param('id') id: string): Promise<UserDto> {
     return await this.userService.getUserById(id);
   }
 

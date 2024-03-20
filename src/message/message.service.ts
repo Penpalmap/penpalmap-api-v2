@@ -110,7 +110,7 @@ export class MessageService {
     if (!isAdmin(loggedUser) && loggedUser.id !== dto.senderId) {
       throw new ForbiddenException('You cannot send a message as another user');
     }
-    const sender = await this.userService.getUserById(loggedUser, dto.senderId);
+    const sender = await this.userService.getUserById(dto.senderId);
     const room = await this.roomService.getRoomById(loggedUser, dto.roomId);
 
     const message = await this.messageRepository.save({

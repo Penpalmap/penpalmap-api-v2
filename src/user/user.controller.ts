@@ -56,7 +56,7 @@ export class UserController {
     @LoggedUser() loggedUser: User,
     @Param('id') id: string,
   ): Promise<UserDto> {
-    return await this.userService.getUserById(loggedUser, id);
+    return await this.userService.getUserById(id);
   }
 
   @Patch(':id')

@@ -98,10 +98,7 @@ export class UserService {
   }
 
   // Get user
-  async getUserById(loggedUser: User, id: string): Promise<UserDto> {
-    if (!isAdmin(loggedUser) && loggedUser.id !== id) {
-      throw new ForbiddenException('You cannot read this user');
-    }
+  async getUserById(id: string): Promise<UserDto> {
     return UserService.userToDto(await this.getUserByIdRaw(id));
   }
 

@@ -15,6 +15,33 @@ jobs:
       - id: checkout
         name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: calc-new-version
+        name: Calculate new version
+        uses: anothrNick/github-tag-action@1.64.0
+        env:
+          DRY_RUN: true
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - id: update-package-version
+        name: Update package.json version
+        run: |
+          # Update package.json version with yq
+          sudo snap install yq
+          yq -i '.version = "${{ steps.calc-new-version.outputs.new_tag }}"' package.json
+      - id: update-chart-version
+        name: Update Chart.yaml version
+        run: |
+          # Update Chart.yaml version with yq
+          sudo snap install yq
+          yq -i '.version = ${{ steps.calc-new-version.outputs.new_tag }}' charts/penpalmap-api-v2/Chart.yaml
+          yq -i '.appVersion = "${{ steps.calc-new-version.outputs.new_tag }}"' charts/penpalmap-api-v2/Chart.yaml
+      - id: commit
+        name: Commit and push changes
+        uses: actions-js/push@v1.4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          message: "chore: bump version to ${{ steps.calc-new-version.outputs.new_tag }}"
       - id: bump-version
         name: Bump version and push tag
         uses: anothrNick/github-tag-action@1.64.0

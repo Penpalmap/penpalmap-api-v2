@@ -33,8 +33,7 @@ jobs:
         name: Update Chart.yaml version
         run: |
           # Update Chart.yaml version with yq
-          sudo snap install yq
-          yq -i '.version = ${{ steps.calc-new-version.outputs.new_tag }}' charts/penpalmap-api-v2/Chart.yaml
+          yq -i '.version = "${{ steps.calc-new-version.outputs.new_tag }}"' charts/penpalmap-api-v2/Chart.yaml
           yq -i '.appVersion = "${{ steps.calc-new-version.outputs.new_tag }}"' charts/penpalmap-api-v2/Chart.yaml
       - id: commit
         name: Commit and push changes

@@ -66,6 +66,8 @@ export class AuthService {
     const accessToken = this.generateAccessToken(user);
     const refreshToken = this.generateRefreshToken(user);
 
+    await this.userService.incrementUserConnection(user.id);
+
     await this.storeRefreshTokenInDB(user, refreshToken);
     return { accessToken, refreshToken };
   }
@@ -179,6 +181,9 @@ export class AuthService {
       const token = this.generateAccessToken(user);
       const refreshToken = this.generateRefreshToken(user);
       await this.storeRefreshTokenInDB(user, refreshToken);
+
+      await this.userService.incrementUserConnection(user.id);
+
       return { accessToken: token, refreshToken: refreshToken };
     }
 

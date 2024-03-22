@@ -50,7 +50,10 @@ export class AuthService {
     private readonly mailjetService: MailjetService,
     private readonly roleService: RoleService,
   ) {
-    this.googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+    this.googleClient = new OAuth2Client(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+    );
   }
 
   async passwordLogin(dto: PasswordLoginDto): Promise<TokenSetDto> {

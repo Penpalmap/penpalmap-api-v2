@@ -50,6 +50,79 @@ spec:
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          env:
+            - name: ACCESS_TOKEN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "penpalmap-api-v2.jwt.secretName" . }}
+                  key: {{ include "penpalmap-api-v2.jwt.accessTokenKey" . }}
+            - name: REFRESH_TOKEN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "penpalmap-api-v2.jwt.secretName" . }}
+                  key: {{ include "penpalmap-api-v2.jwt.refreshTokenKey" . }}
+            - name: GOOGLE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "penpalmap-api-v2.google.secretName" . }}
+                  key: {{ include "penpalmap-api-v2.google.clientIdKey" . }}
+            - name: GOOGLE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "penpalmap-api-v2.google.secretName" . }}
+                  key: {{ include "penpalmap-api-v2.google.clientSecretKey" . }}
+            - name: MJ_APIKEY_PUBLIC
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "penpalmap-api-v2.mailjet.secretName" . }}
+                  key: {{ include "penpalmap-api-v2.mailjet.apiKeyKey" . }}
+            - name: MJ_APIKEY_PRIVATE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "penpalmap-api-v2.mailjet.secretName" . }}
+                  key: {{ include "penpalmap-api-v2.mailjet.apiSecretKey" . }}
+            {{- if not (empty .Values.config.frontendURL) }}
+            - name: FRONTEND_URL
+              value: {{ .Values.config.frontendURL }}
+            {{- end }}
+            {{- if not (empty .Values.database.name) }}
+            - name: DB_NAME
+              value: {{ .Values.config.database.name }}
+            {{- end }}
+            {{- if not (empty .Values.database.host) }}
+            - name: DB_HOST
+              value: {{ .Values.config.database.host }}
+            {{- end }}
+            {{- if not (empty .Values.database.port) }}
+            - name: DB_PORT
+              value: {{ .Values.config.database.port | quote }}
+            {{- end }}
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "penpalmap-api-v2.postgresql.secretName" . }}
+                  key: {{ include "penpalmap-api-v2.postgresql.usernameKey" . }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "penpalmap-api-v2.postgresql.secretName" . }}
+                  key: {{ include "penpalmap-api-v2.postgresql.passwordKey" . }}
+            - name: MINIO_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "penpalmap-api-v2.minio.secretName" . }}
+                  key: {{ include "penpalmap-api-v2.minio.usernameKey" . }}
+            - name: MINIO_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "penpalmap-api-v2.minio.secretName" . }}
+                  key: {{ include "penpalmap-api-v2.minio.passwordKey" . }}
+            - name: MINIO_SCHEME
+              value: {{ .Values.config.minio.scheme }}
+            - name: MINIO_HOST
+              value: {{ .Values.config.minio.host }}
+            - name: MINIO_PORT
+              value: {{ .Values.config.minio.port | quote }}
       {{- with .Values.volumes }}
       volumes:
         {{- toYaml . | nindent 8 }}

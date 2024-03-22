@@ -109,3 +109,47 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+config:
+  jwt:
+    accessTokenSecret: ""
+    refreshTokenSecret: ""
+    existingSecret: ""
+    secretKeys:
+      accessToken: "access-token-secret"
+      refreshToken: "refresh-token-secret"
+  google:
+    clientId: ""
+    clientSecret: ""
+    existingSecret: ""
+    secretKeys:
+      clientId: client-id
+      clientSecret: client-secret
+  mailjet:
+    apiKey: ""
+    apiSecret: ""
+    existingSecret: ""
+    secretKeys:
+      apiKey: api-key
+      apiSecret: api-secret
+  frontendURL: "http://penpalmap.local"
+  postgresql:
+    host: ""
+    port: 5432
+    name: ""
+    username: ""
+    password: ""
+    existingSecret: ""
+    secretKeys:
+      username: username
+      password: password
+  minio:
+    host: ""
+    port: 9000
+    scheme: "http"
+    username: ""
+    password: ""
+    existingSecret: ""
+    secretKeys:
+      username: username
+      password: password

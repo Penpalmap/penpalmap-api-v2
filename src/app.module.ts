@@ -33,7 +33,7 @@ import { SocketModule } from './socket/socket.module';
         password: process.env.DB_PASSWORD ?? 'secret',
         database: process.env.DB_NAME ?? 'postgres',
         entities: [__dirname + '/**/*.model{.ts,.js}'],
-        synchronize: process.env.NODE_ENV !== 'production',
+        synchronize: true,
       }),
       async dataSourceFactory(options) {
         if (!options) {

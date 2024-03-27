@@ -105,7 +105,10 @@ export default class User {
   })
   userImages?: UserImage[];
 
-  @ManyToMany(() => User, (user) => user.blockedUsers)
+  @ManyToMany(() => User, (user) => user.blockedUsers, {
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  })
   @JoinTable()
   blockedUsers?: User[];
 
@@ -130,7 +133,10 @@ export default class User {
   @OneToMany(() => RefreshTokens, (refreshTokens) => refreshTokens.user)
   refreshTokens?: RefreshTokens[];
 
-  @ManyToMany(() => Role, (role) => role.users)
+  @ManyToMany(() => Role, (role) => role.users, {
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  })
   roles?: Role[];
 
   @CreateDateColumn({ type: 'timestamptz' })

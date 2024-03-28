@@ -115,7 +115,10 @@ export class UserService {
     return user;
   }
 
-  async getUserByLoginRaw(email?: string, googleId?: string): Promise<User> {
+  async getUserByLoginRaw(
+    email?: string,
+    googleId?: string,
+  ): Promise<User | null> {
     if (!email && !googleId) {
       throw new BadRequestException('Email or googleId is required');
     }
@@ -127,9 +130,6 @@ export class UserService {
       },
     });
 
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
     return user;
   }
 

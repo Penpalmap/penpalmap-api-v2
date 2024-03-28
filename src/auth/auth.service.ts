@@ -58,6 +58,9 @@ export class AuthService {
 
   async passwordLogin(dto: PasswordLoginDto): Promise<TokenSetDto> {
     const user = await this.userService.getUserByLoginRaw(dto.email);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
     if (!user?.password) {
       throw new BadRequestException('Cannot login with password');
     }

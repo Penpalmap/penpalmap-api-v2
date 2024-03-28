@@ -38,15 +38,16 @@ jobs:
           yq -i '.appVersion = "${{ steps.calc-new-version.outputs.new_tag }}"' charts/penpalmap-api-v2/Chart.yaml
       - id: commit
         name: Commit and push changes
-        uses: actions-js/push@v1.4
+        uses: ad-m/github-push-action@v0.8.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           message: "chore: bump version to ${{ steps.calc-new-version.outputs.new_tag }}"
       - id: bump-version
         name: Bump version and push tag
         uses: anothrNick/github-tag-action@1.64.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
 
   build:
     name: Build and push docker image to Github Container Registry

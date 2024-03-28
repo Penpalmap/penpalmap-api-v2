@@ -41,13 +41,13 @@ jobs:
         uses: ad-m/github-push-action@v0.8.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
           message: "chore: bump version to ${{ steps.calc-new-version.outputs.new_tag }}"
       - id: bump-version
         name: Bump version and push tag
         uses: anothrNick/github-tag-action@1.64.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build:
     name: Build and push docker image to Github Container Registry

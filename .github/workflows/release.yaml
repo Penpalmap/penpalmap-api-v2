@@ -28,7 +28,9 @@ jobs:
         run: |
           # Update package.json version with jq
           jq '.version = "${{ steps.calc-new-version.outputs.new_tag }}"' package.json > package.json.tmp
+          jq '.version = "${{ steps.calc-new-version.outputs.new_tag }}"' package-lock.json > package-lock.json.tmp
           mv package.json.tmp package.json
+          mv package-lock.json.tmp package-lock.json
       - id: update-chart-version
         name: Update Chart.yaml version
         run: |
@@ -36,13 +38,15 @@ jobs:
           sudo snap install yq
           yq -i '.version = "${{ steps.calc-new-version.outputs.new_tag }}"' charts/penpalmap-api-v2/Chart.yaml
           yq -i '.appVersion = "${{ steps.calc-new-version.outputs.new_tag }}"' charts/penpalmap-api-v2/Chart.yaml
+          git config --local user.email "bot@penpalmap.com"
+          git config --local user.name "Penpalmap Bot"
+          git commit -a -m "chore: bump version to ${{ steps.calc-new-version.outputs.new_tag }}"
       - id: commit
         name: Commit and push changes
         uses: ad-m/github-push-action@v0.8.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.ref }}
-          message: "chore: bump version to ${{ steps.calc-new-version.outputs.new_tag }}"
       - id: bump-version
         name: Bump version and push tag
         uses: anothrNick/github-tag-action@1.64.0
@@ -68,7 +72,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - id: repository-to-lowercase
-        uses: ASzc/change-string-case-action@v5
+        uses: ASzc/change-string-case-action@v6
         with:
           string: ${{ github.repository }}
       - id: docker-build-push

@@ -13,7 +13,7 @@ import { UseFilters } from '@nestjs/common';
 import { SocketExceptionsFilter } from '../shared/socket/socket-exceptions.filter';
 import { Socket } from 'socket.io';
 
-@WebSocketGateway()
+@WebSocketGateway({ cors: true })
 @UseFilters(SocketExceptionsFilter)
 export class RoomGateway {
   constructor(private readonly roomService: RoomService) {}

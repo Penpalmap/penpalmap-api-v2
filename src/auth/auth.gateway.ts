@@ -15,7 +15,7 @@ import {
 import { UseFilters } from '@nestjs/common';
 import { SocketExceptionsFilter } from '../shared/socket/socket-exceptions.filter';
 
-@WebSocketGateway()
+@WebSocketGateway({ cors: true })
 @UseFilters(SocketExceptionsFilter)
 export class AuthGateway implements OnGatewayDisconnect {
   constructor(private readonly authService: AuthService) {}

@@ -462,7 +462,7 @@ export class UserService {
     if (dto.position == 1) {
       const mapImage = await sharp(dto.image.buffer)
         .resize(100, 100)
-        .webp({ quality: 50 })
+        .webp({ quality: 70 })
         .toBuffer();
       await this.minioService.uploadObject(mapBucketName, imageName, mapImage);
       await this.userRepository.save({
@@ -476,7 +476,7 @@ export class UserService {
     // Save profils image
     const profilsImage = await sharp(dto.image.buffer)
       .resize(200, 200)
-      .webp({ quality: 90 })
+      .webp({ quality: 100 })
       .toBuffer();
     await this.minioService.uploadObject(
       profilsBucketName,

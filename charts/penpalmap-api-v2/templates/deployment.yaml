@@ -81,22 +81,14 @@ spec:
                 secretKeyRef:
                   name: {{ include "penpalmap-api-v2.mailjet.secretName" . }}
                   key: {{ include "penpalmap-api-v2.mailjet.apiSecretKey" . }}
-            {{- if not (empty .Values.config.frontendURL) }}
             - name: FRONTEND_URL
               value: {{ .Values.config.frontendURL }}
-            {{- end }}
-            {{- if not (empty .Values.database.name) }}
             - name: DB_NAME
-              value: {{ .Values.config.database.name }}
-            {{- end }}
-            {{- if not (empty .Values.database.host) }}
+              value: {{ .Values.config.postgresql.name }}
             - name: DB_HOST
-              value: {{ .Values.config.database.host }}
-            {{- end }}
-            {{- if not (empty .Values.database.port) }}
+              value: {{ .Values.config.postgresql.host }}
             - name: DB_PORT
-              value: {{ .Values.config.database.port | quote }}
-            {{- end }}
+              value: {{ .Values.config.postgresql.port | quote }}
             - name: DB_USER
               valueFrom:
                 secretKeyRef:

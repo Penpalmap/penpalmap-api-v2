@@ -1,12 +1,18 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { EmailContact, SendEmailDto } from './dto/send-email.dto';
 import mailjet, { Client } from 'node-mailjet';
 
 @Injectable()
 export class MailjetService {
   private readonly client: Client;
+  private readonly logger = new Logger(MailjetService.name);
 
   constructor() {
+    if (process.env.NODE_ENV != 'production') {
+      this.logger.debug('In development mode, emails will appear in logs.');
+      return;
+    }
+
     this.client = mailjet.apiConnect(
       process.env.MJ_APIKEY_PUBLIC ?? 'public-key',
       process.env.MJ_APIKEY_PRIVATE ?? 'private-key',
@@ -20,6 +26,12 @@ export class MailjetService {
   }
 
   public async sendEmail(dto: SendEmailDto): Promise<void> {
+    if (process.env.NODE_ENV != 'production') {
+      this.logger.debug('Sending email in development mode');
+      this.logger.debug(dto);
+      return Promise.resolve();
+    }
+
     const createContact = (
       contact: EmailContact,
     ): {

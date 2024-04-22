@@ -55,32 +55,32 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ include "penpalmap-api-v2.jwt.secretName" . }}
-                  key: {{ include "penpalmap-api-v2.jwt.accessTokenKey" . }}
+                  key: {{ .Values.config.jwt.secretKeys.accessToken | quote }}
             - name: REFRESH_TOKEN_SECRET
               valueFrom:
                 secretKeyRef:
                   name: {{ include "penpalmap-api-v2.jwt.secretName" . }}
-                  key: {{ include "penpalmap-api-v2.jwt.refreshTokenKey" . }}
+                  key: {{ .Values.config.jwt.secretKeys.refreshToken | quote }}
             - name: GOOGLE_CLIENT_ID
               valueFrom:
                 secretKeyRef:
                   name: {{ include "penpalmap-api-v2.google.secretName" . }}
-                  key: {{ include "penpalmap-api-v2.google.clientIdKey" . }}
+                  key: {{ .Values.config.google.secretKeys.clientId | quote }}
             - name: GOOGLE_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
                   name: {{ include "penpalmap-api-v2.google.secretName" . }}
-                  key: {{ include "penpalmap-api-v2.google.clientSecretKey" . }}
+                  key: {{ .Values.config.google.secretKeys.clientSecret | quote }}
             - name: MJ_APIKEY_PUBLIC
               valueFrom:
                 secretKeyRef:
                   name: {{ include "penpalmap-api-v2.mailjet.secretName" . }}
-                  key: {{ include "penpalmap-api-v2.mailjet.apiKeyKey" . }}
+                  key: {{ .Values.config.mailjet.secretKeys.apiKey | quote }}
             - name: MJ_APIKEY_PRIVATE
               valueFrom:
                 secretKeyRef:
                   name: {{ include "penpalmap-api-v2.mailjet.secretName" . }}
-                  key: {{ include "penpalmap-api-v2.mailjet.apiSecretKey" . }}
+                  key: {{ .Values.config.mailjet.secretKeys.apiSecret | quote }}
             - name: FRONTEND_URL
               value: {{ .Values.config.frontendURL }}
             - name: DB_NAME
@@ -93,22 +93,22 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ include "penpalmap-api-v2.postgresql.secretName" . }}
-                  key: {{ include "penpalmap-api-v2.postgresql.usernameKey" . }}
+                  key: {{ .Values.config.postgresql.secretKeys.username | quote }}
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "penpalmap-api-v2.postgresql.secretName" . }}
-                  key: {{ include "penpalmap-api-v2.postgresql.passwordKey" . }}
+                  key: {{ .Values.config.postgresql.secretKeys.password | quote}}
             - name: MINIO_USER
               valueFrom:
                 secretKeyRef:
                   name: {{ include "penpalmap-api-v2.minio.secretName" . }}
-                  key: {{ include "penpalmap-api-v2.minio.usernameKey" . }}
+                  key: {{ .Values.config.minio.secretKeys.username | quote }}
             - name: MINIO_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "penpalmap-api-v2.minio.secretName" . }}
-                  key: {{ include "penpalmap-api-v2.minio.passwordKey" . }}
+                  key: {{ .Values.config.minio.secretKeys.password | quote }}
             - name: MINIO_SCHEME
               value: {{ .Values.config.minio.scheme }}
             - name: MINIO_HOST

@@ -18,6 +18,7 @@ import { MinioModule } from './minio/minio.module';
 import { RoleModule } from './role/role.module';
 import { SetupModule } from './setup/setup.module';
 import { SocketModule } from './socket/socket.module';
+import { CronJobModule } from './cron/cron.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { SocketModule } from './socket/socket.module';
     RoleModule,
     SetupModule,
     SocketModule,
+    CronJobModule,
   ],
   controllers: [AppController],
 })

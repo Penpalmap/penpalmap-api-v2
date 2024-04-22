@@ -26,6 +26,12 @@ export default class Message {
   })
   isSeen: boolean;
 
+  @Column('boolean', {
+    nullable: false,
+    default: false,
+  })
+  notificationSent: boolean;
+
   @ManyToOne(() => User, (user) => user.messages, {
     onUpdate: 'CASCADE',
     onDelete: 'CASCADE',

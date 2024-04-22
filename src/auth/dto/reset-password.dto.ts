@@ -1,7 +1,7 @@
-import { IsJWT, Length } from 'class-validator';
+import { Length } from 'class-validator';
 
 export class ResetPasswordDto {
-  @IsJWT()
+  @Length(64, 64)
   token: string;
 
   @Length(8, 32)

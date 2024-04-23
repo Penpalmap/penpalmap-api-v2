@@ -32,6 +32,8 @@ import { MailjetService } from '../mailjet/mailjet.service';
 
 @Injectable()
 export class MessageService {
+  private readonly logger = new Logger(MessageService.name);
+
   constructor(
     @InjectRepository(Message)
     private readonly messageRepository: Repository<Message>,
@@ -231,7 +233,7 @@ export class MessageService {
 
   @Cron(CronExpression.EVERY_HOUR)
   async handleCron(): Promise<void> {
-    Logger.log('Running cron job: send email to users with unread messages');
+    this.logger.log('Running cron job to send unread messages notifications');
     const oneHourAgo = new Date(new Date().getTime() - 60 * 60 * 1000);
 
     const messages = await this.messageRepository.find({

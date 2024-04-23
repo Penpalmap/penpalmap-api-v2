@@ -6,6 +6,7 @@ import Message from './message.model';
 import { UserModule } from '../user/user.module';
 import { RoomModule } from '../room/room.module';
 import { SocketModule } from '../socket/socket.module';
+import { MailjetModule } from '../mailjet/mailjet.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { SocketModule } from '../socket/socket.module';
     UserModule,
     RoomModule,
     SocketModule,
+    MailjetModule,
   ],
   controllers: [MessageController],
   providers: [MessageService],

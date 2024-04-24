@@ -1,11 +1,12 @@
 import {
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import Message from './message.model';
-import { Repository } from 'typeorm';
+import { LessThan, Repository } from 'typeorm';
 import { v4 as uuid } from 'uuid';
 import { UserService } from '../user/user.service';
 import { RoomService } from '../room/room.service';
@@ -25,15 +26,21 @@ import {
   MESSAGE_SEEN_EVENT,
   MessageSeenEventDto,
 } from './dto/message-seen-event.dto';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { SendEmailDto } from '../mailjet/dto/send-email.dto';
+import { MailjetService } from '../mailjet/mailjet.service';
 
 @Injectable()
 export class MessageService {
+  private readonly logger = new Logger(MessageService.name);
+
   constructor(
     @InjectRepository(Message)
     private readonly messageRepository: Repository<Message>,
     private readonly userService: UserService,
     private readonly roomService: RoomService,
     private readonly socketService: SocketService,
+    private readonly mailjetService: MailjetService,
   ) {}
 
   static messageToDto(message: Message): MessageDto {
@@ -222,5 +229,51 @@ export class MessageService {
     }
 
     await this.messageRepository.remove(message);
+  }
+
+  @Cron(CronExpression.EVERY_HOUR)
+  async handleCron(): Promise<void> {
+    this.logger.log('Running cron job to send unread messages notifications');
+    const oneHourAgo = new Date(new Date().getTime() - 60 * 60 * 1000);
+
+    const messages = await this.messageRepository.find({
+      where: {
+        createdAt: LessThan(oneHourAgo),
+        isSeen: false,
+        notificationSent: false,
+      },
+      relations: {
+        room: {
+          members: true,
+        },
+        sender: true,
+      },
+    });
+    const rooms = new Set(messages.map((msg) => msg.room?.id));
+    for (const roomId of rooms) {
+      const roomMessages = messages.filter((msg) => msg.room?.id === roomId);
+      if (roomMessages.length > 0) {
+        const sendEmailDto = new SendEmailDto();
+        sendEmailDto.from = {
+          email: 'contact@penpalmap.com',
+          name: 'Meetmapper',
+        };
+
+        for (const member of roomMessages[0].room?.members ?? []) {
+          if (member.id !== roomMessages[0].sender?.id) {
+            sendEmailDto.to = member.email;
+            sendEmailDto.subject = 'You have unread messages';
+            sendEmailDto.text = `You have ${roomMessages.length} unread messages`;
+            sendEmailDto.html = `<strong>You have ${roomMessages.length} unread messages by ${roomMessages[0].sender?.name}.</strong>.`;
+
+            await this.mailjetService.sendEmail(sendEmailDto);
+          }
+        }
+
+        // Marquer les messages comme notifiés
+        roomMessages.forEach((msg) => (msg.notificationSent = true));
+        await this.messageRepository.save(roomMessages);
+      }
+    }
   }
 }

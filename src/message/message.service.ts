@@ -255,7 +255,7 @@ export class MessageService {
       if (roomMessages.length > 0) {
         const sendEmailDto = new SendEmailDto();
         sendEmailDto.from = {
-          email: 'contact@penpalmap.com',
+          email: 'contact@meetmapper.com',
           name: 'Meetmapper',
         };
 

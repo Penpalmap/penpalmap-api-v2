@@ -47,8 +47,8 @@ export class MailjetService {
     const from = dto.from
       ? createContact(dto.from)
       : {
-          Email: 'contact@penpalmap.com',
-          Name: 'Penpalmap',
+          Email: 'contact@meetmapper.com',
+          Name: 'Meetmapper',
         };
     const to = Array.isArray(dto.to)
       ? dto.to.map(createContact)

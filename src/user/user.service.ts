@@ -461,8 +461,8 @@ export class UserService {
     // Save map image only if it's the first image
     if (dto.position == 1) {
       const mapImage = await sharp(dto.image.buffer)
-        .resize(100, 100)
-        .webp({ quality: 70 })
+        .resize(300, 300)
+        .webp()
         .toBuffer();
       await this.minioService.uploadObject(mapBucketName, imageName, mapImage);
       await this.userRepository.save({
@@ -475,8 +475,8 @@ export class UserService {
 
     // Save profils image
     const profilsImage = await sharp(dto.image.buffer)
-      .resize(200, 200)
-      .webp({ quality: 100 })
+      .resize(500, 500)
+      .webp()
       .toBuffer();
     await this.minioService.uploadObject(
       profilsBucketName,

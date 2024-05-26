@@ -315,7 +315,7 @@ export class AuthService {
 
   private generateAccessToken(user: User): string {
     return this.jwtService.sign(
-      { userId: user.id },
+      { sub: user.id },
       {
         secret: process.env.ACCESS_TOKEN_SECRET ?? 'secret',
         expiresIn: process.env.ACCESS_TOKEN_EXPIRATION ?? '365d',
@@ -325,7 +325,7 @@ export class AuthService {
 
   private generateRefreshToken(user: User): string {
     return this.jwtService.sign(
-      { userId: user.id },
+      { sub: user.id },
       {
         secret: process.env.REFRESH_TOKEN_SECRET ?? 'secret',
         expiresIn: process.env.REFRESH_TOKEN_EXPIRATION ?? '7y',

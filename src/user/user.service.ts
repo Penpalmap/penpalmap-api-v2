@@ -73,21 +73,39 @@ export class UserService {
   }
   // Get all users
   async getUsers(dto: QueryUserDto): Promise<PageDto<UserDto>> {
-    const [users, total] = await this.userRepository.findAndCount({
-      where: {
-        email: dto.email,
-        googleId: dto.googleId,
-        roles: dto.roleIds ? { id: In(dto.roleIds) } : undefined,
-      },
-      take: dto.limit,
-      skip: dto.offset,
-      order: {
-        [dto.orderBy]: dto.order,
-      },
-      relations: {
-        roles: Boolean(dto.roleIds),
-      },
-    });
+    // We need to use a raw query to use the ST_DWithin function
+    const baseQuery = this.userRepository.createQueryBuilder('user').select();
+    const queryStep1 =
+      dto.longitude && dto.latitude && dto.radius
+        ? baseQuery.where(
+            'ST_DWithin(user.geom, ST_SetSRID(ST_MakePoint(:lat, :lon), 4326), :range)',
+            {
+              lat: dto.latitude,
+              lon: dto.longitude,
+              range: dto.radius * 1000,
+            },
+          )
+        : baseQuery;
+    const queryStep2 = dto.email
+      ? queryStep1.andWhere('user.email = :email', { email: dto.email })
+      : queryStep1;
+    const queryStep3 = dto.googleId
+      ? queryStep2.andWhere('user.googleId = :googleId', {
+          googleId: dto.googleId,
+        })
+      : queryStep2;
+    const queryStep4 = dto.roleIds
+      ? queryStep3.innerJoin('user.roles', 'role', 'role.id IN (:...roleIds)', {
+          roleIds: dto.roleIds,
+        })
+      : queryStep3;
+
+    const query = queryStep4
+      .orderBy(`user.${dto.orderBy}`, dto.order) // Order by field is sanitized by TypeORM
+      .skip(dto.offset)
+      .take(dto.limit);
+
+    const [users, total] = await query.getManyAndCount();
     const page = new PageDto<User>(dto.limit, dto.offset, total, users);
     return page.map((user) =>
       UserService.userToDto({ ...user, roles: undefined }),
@@ -106,6 +124,7 @@ export class UserService {
       },
       relations: {
         blockedUsers: true,
+        roles: true,
       },
     });
 
